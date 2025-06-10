@@ -1,62 +1,9 @@
-body {
-  font-family: Arial, sans-serif;
-  padding: 1rem;
-}
-
-#calendar {
-  max-width: 800px;
-  margin: 2rem auto;
-}
-
-.fc-day-disabled {
-  background-color: #e0e0e0 !important;
-  cursor: not-allowed;
-}
-
-.day-price {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  font-size: 0.75rem;
-  color: #333;
-}
-
-.inputs {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.inputs input,
-.inputs button {
-  padding: 0.5rem;
-  font-size: 1rem;
-}
-
-.inputs input {
-  margin: 0 0.5rem;
-  width: 140px;
-}
-
-#message {
-  text-align: center;
-  margin: 1rem auto;
-  font-weight: bold;
-  min-height: 1.2em;
-}
-
-#message.error {
-  color: #c00;
-}
-
-#message.success {
-  color: #060;
-}
-.modal-backdrop {
-  /* existing rules… */
-  z-index: 9999;
-}
-
-.modal {
-  /* existing rules… */
-  z-index: 10000;
-}
+body { font-family: Arial, sans-serif; margin: 0; padding: 1rem; }
+.login-container, #adminPanels, #userCalendar { max-width: 800px; margin: 2rem auto; }
+input, button { padding: 0.5rem; font-size: 1rem; }
+.modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+.modal { background: white; padding: 1.5rem; border-radius: 0.5rem; max-width: 400px; width: 100%; }
+.error { color: #c00; }
+.success { color: #060; }
+.day-price { position: absolute; bottom: 2px; right: 2px; font-size: 0.75rem; }
+.fc-day-disabled { background: #eee !important; cursor: not-allowed; }

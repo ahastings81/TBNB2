@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    #adminPanels, #userCalendar { display: none; }
+    #modeToggle { position: fixed; top: 1rem; left: 1rem; z-index: 10001; }
+  </style>
+</head>
+<body>
+  <button id="modeToggle">Switch to User View</button>
+  <form action="/logout" method="POST" style="position:fixed;top:1rem;right:1rem;">
+    <button type="submit">Log Out</button>
+  </form>
+
+  <!-- Admin Mode -->
+  <div id="adminPanels">
+    <h2>Price Calendar</h2>
+    <div id="adminCalendar"></div>
+    <h2>Upload Gallery Image</h2>
+    <input type="file" id="imageFile" accept="image/*" />
+    <button id="uploadBtn">Upload</button>
+    <div id="uploadMsg"></div>
+    <div id="priceModal" class="modal-backdrop" style="display:none;"></div>
+  </div>
+
+  <!-- User Mode -->
+  <div id="userCalendar">
+    <div id="calendar"></div>
+    <div id="message"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
+  <script>
+    // Toggle between modes
+    const adminPanels = document.getElementById('adminPanels');
+    const userCal     = document.getElementById('userCalendar');
+    const toggleBtn   = document.getElementById('modeToggle');
+    let adminMode = true;
+    toggleBtn.addEventListener('click', () => {
+      adminMode = !adminMode;
+      adminPanels.style.display = adminMode ? 'block' : 'none';
+      userCal.style.display     = adminMode ? 'none'  : 'block';
+      toggleBtn.textContent     = adminMode ? 'Switch to User View' : 'Switch to Admin View';
+    });
+    // Initialize admin first
+    adminPanels.style.display = 'block';
+
+    // Admin calendar & price editing (same as earlier code)
+    // ...
+
+    // Image upload handler
+    document.getElementById('uploadBtn').onclick = async () => {
+      const file = document.getElementById('imageFile').files[0];
+      const form = new FormData(); form.append('image', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      const data = await res.json();
+      document.getElementById('uploadMsg').textContent = data.url;
+    };
+
+    // Public calendar view
+    document.addEventListener('DOMContentLoaded', async () => {
+      const el = document.getElementById('calendar');
+      // ... same rendering logic as public/index.html ...
+    });
+  </script>
+</body>
+</html>

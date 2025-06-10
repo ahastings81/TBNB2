@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="login-container">
+    <h1>Admin Login</h1>
+    <form action="/login" method="POST">
+      <label>Username</label>
+      <input type="text" name="username" required autofocus />
+      <label>Password</label>
+      <input type="password" name="password" required />
+      <button type="submit">Log In</button>
+      <!-- Show error if ?error=1 -->
+      <script>
+        if (location.search.includes('error=1')) {
+          document.write('<p class="error">Invalid credentials</p>');
+        }
+      </script>
+    </form>
+  </div>
+</body>
+</html>

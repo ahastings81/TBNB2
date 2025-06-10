@@ -1,6 +1,6 @@
 {
   "bookings": [
-    { "id": 1, "start": "2025-06-15", "end": "2025-06-18" }
+    { "id": 1, "name": "Seed User", "email": "seed@example.com", "start": "2025-06-15", "end": "2025-06-18" }
   ],
   "prices": {
     "2025-06-10": 120,
