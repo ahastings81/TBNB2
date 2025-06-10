@@ -2,72 +2,213 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
+  <!-- Your site CSS -->
+  <link rel="stylesheet" href="style.css"/>
+
   <style>
-    #adminPanels, #userCalendar { display: none; }
-    #modeToggle { position: fixed; top: 1rem; left: 1rem; z-index: 10001; }
+    /* Ensure modals and toggle button layer correctly */
+    #modeToggle       { position: fixed; top: 1rem; left: 1rem; z-index: 10001; }
+    #logoutForm       { position: fixed; top: 1rem; right: 1rem; z-index: 10001; }
+    #adminPanels,
+    #userCalendar     { max-width: 800px; margin: 4rem auto 2rem; }
+    .modal-backdrop   { z-index: 9998; }
+    .modal            { z-index: 10000; }
   </style>
 </head>
 <body>
+  <!-- Toggle and Logout -->
   <button id="modeToggle">Switch to User View</button>
-  <form action="/logout" method="POST" style="position:fixed;top:1rem;right:1rem;">
+  <form id="logoutForm" action="/logout" method="POST">
     <button type="submit">Log Out</button>
   </form>
 
-  <!-- Admin Mode -->
+  <!-- ADMIN MODE PANELS -->
   <div id="adminPanels">
     <h2>Price Calendar</h2>
     <div id="adminCalendar"></div>
+
     <h2>Upload Gallery Image</h2>
-    <input type="file" id="imageFile" accept="image/*" />
+    <input type="file" id="imageFile" accept="image/*"/>
     <button id="uploadBtn">Upload</button>
     <div id="uploadMsg"></div>
-    <div id="priceModal" class="modal-backdrop" style="display:none;"></div>
+
+    <!-- Price‐edit modal -->
+    <div id="priceModal" class="modal-backdrop" style="display:none;">
+      <div class="modal">
+        <h3>Set Price for <span id="priceDate"></span></h3>
+        <form id="priceForm">
+          <label>Price ($)</label>
+          <input type="number" id="priceInput" min="0" required/>
+          <div class="actions">
+            <button type="button" id="priceCancel">Cancel</button>
+            <button type="submit">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
-  <!-- User Mode -->
+  <!-- USER MODE VIEW -->
   <div id="userCalendar">
+    <h2>Guest Calendar Preview</h2>
     <div id="calendar"></div>
     <div id="message"></div>
   </div>
 
+  <!-- Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
+
   <script>
-    // Toggle between modes
+    const API_KEY     = 'supersecretkey'; // same key your server expects
+    let adminMode     = true;
+
+    const toggleBtn   = document.getElementById('modeToggle');
     const adminPanels = document.getElementById('adminPanels');
     const userCal     = document.getElementById('userCalendar');
-    const toggleBtn   = document.getElementById('modeToggle');
-    let adminMode = true;
+
+    // modal & form refs
+    const priceModal  = document.getElementById('priceModal');
+    const priceDate   = document.getElementById('priceDate');
+    const priceInput  = document.getElementById('priceInput');
+    const priceForm   = document.getElementById('priceForm');
+    const priceCancel = document.getElementById('priceCancel');
+
+    // image upload refs
+    const uploadBtn   = document.getElementById('uploadBtn');
+    const imageFile   = document.getElementById('imageFile');
+    const uploadMsg   = document.getElementById('uploadMsg');
+
+    // calendars' containers
+    const adminCalEl  = document.getElementById('adminCalendar');
+    const userCalEl   = document.getElementById('calendar');
+    const messageEl   = document.getElementById('message');
+
+    // Toggle between admin/user views
     toggleBtn.addEventListener('click', () => {
       adminMode = !adminMode;
       adminPanels.style.display = adminMode ? 'block' : 'none';
       userCal.style.display     = adminMode ? 'none'  : 'block';
       toggleBtn.textContent     = adminMode ? 'Switch to User View' : 'Switch to Admin View';
     });
-    // Initialize admin first
+    // initialize to admin view
     adminPanels.style.display = 'block';
 
-    // Admin calendar & price editing (same as earlier code)
-    // ...
+    // Load bookings & prices once for both calendars
+    let bookings = [], prices = {};
+    (async () => {
+      [bookings, prices] = await Promise.all([
+        fetch('/api/bookings').then(r => r.json()),
+        fetch('/api/prices').then(r => r.json()),
+      ]);
+      initAdminCalendar();
+      initUserCalendar();
+    })();
 
-    // Image upload handler
-    document.getElementById('uploadBtn').onclick = async () => {
-      const file = document.getElementById('imageFile').files[0];
-      const form = new FormData(); form.append('image', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: form });
-      const data = await res.json();
-      document.getElementById('uploadMsg').textContent = data.url;
+    // Helper to expand booked dates
+    function getBlockedDates() {
+      const blocked = new Set();
+      bookings.forEach(b => {
+        let d = new Date(b.start), end = new Date(b.end);
+        while (d <= end) {
+          blocked.add(d.toISOString().slice(0,10));
+          d.setDate(d.getDate()+1);
+        }
+      });
+      return blocked;
+    }
+
+    // ========== ADMIN CALENDAR ==========
+    function initAdminCalendar() {
+      const blocked = getBlockedDates();
+      const cal = new FullCalendar.Calendar(adminCalEl, {
+        initialView: 'dayGridMonth',
+        dateClick: info => openPriceModal(info.dateStr),
+        dayCellDidMount: info => {
+          const ds = info.date.toISOString().slice(0,10);
+          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
+          if (prices[ds] != null) {
+            const d = document.createElement('div');
+            d.className   = 'day-price';
+            d.textContent = '$' + prices[ds];
+            info.el.style.position = 'relative';
+            info.el.appendChild(d);
+          }
+        }
+      });
+      cal.render();
+    }
+
+    function openPriceModal(dateStr) {
+      priceDate.textContent = dateStr;
+      priceInput.value      = prices[dateStr] ?? '';
+      priceModal.style.display = 'flex';
+    }
+    priceCancel.onclick = () => priceModal.style.display = 'none';
+
+    priceForm.onsubmit = async e => {
+      e.preventDefault();
+      const date  = priceDate.textContent;
+      const price = Number(priceInput.value);
+      const res = await fetch('/api/prices', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'X-API-KEY':    API_KEY
+        },
+        body: JSON.stringify({ date, price })
+      });
+      if (!res.ok) {
+        alert('Error saving price');
+      } else {
+        // update local and UI
+        prices[date] = price;
+        // refresh calendar cell
+        document.querySelector(`.fc-day[data-date="${date}"] .day-price`)?.remove();
+        const cell = document.querySelector(`.fc-day[data-date="${date}"]`);
+        const d = document.createElement('div');
+        d.className   = 'day-price';
+        d.textContent = '$' + price;
+        cell.style.position = 'relative';
+        cell.appendChild(d);
+      }
+      priceModal.style.display = 'none';
     };
 
-    // Public calendar view
-    document.addEventListener('DOMContentLoaded', async () => {
-      const el = document.getElementById('calendar');
-      // ... same rendering logic as public/index.html ...
-    });
+    // ========== IMAGE UPLOAD ==========
+    uploadBtn.onclick = async () => {
+      if (!imageFile.files[0]) return;
+      const fd = new FormData();
+      fd.append('image', imageFile.files[0]);
+      const res = await fetch('/api/upload', { method:'POST', body:fd });
+      const data = await res.json();
+      uploadMsg.textContent = data.url;
+    };
+
+    // ========== USER CALENDAR ==========
+    function initUserCalendar() {
+      const blocked = getBlockedDates();
+      const cal = new FullCalendar.Calendar(userCalEl, {
+        initialView: 'dayGridMonth',
+        dayCellDidMount: info => {
+          const ds = info.date.toISOString().slice(0,10);
+          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
+          if (prices[ds] != null) {
+            const d = document.createElement('div');
+            d.className   = 'day-price';
+            d.textContent = '$' + prices[ds];
+            info.el.style.position = 'relative';
+            info.el.appendChild(d);
+          }
+        }
+      });
+      cal.render();
+    }
   </script>
 </body>
 </html>
