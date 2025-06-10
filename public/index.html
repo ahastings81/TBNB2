@@ -3,28 +3,90 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Condo Booking Calendar</title>
+  <title>Condo Booking</title>
 
   <!-- FullCalendar CSS -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
-  <!-- Your custom styles -->
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Modal overlay */
+    .modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .modal h2 {
+      margin-top: 0;
+    }
+    .modal label {
+      display: block;
+      margin: 0.5rem 0 0.25rem;
+    }
+    .modal input {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 0.75rem;
+      box-sizing: border-box;
+    }
+    .modal .actions {
+      text-align: right;
+    }
+    .modal .actions button {
+      margin-left: 0.5rem;
+    }
+  </style>
 </head>
 <body>
-
   <div class="inputs">
-    <input readonly id="checkin"  placeholder="Check-in"/>
-    <input readonly id="checkout" placeholder="Check-out"/>
+    <input readonly id="checkin"   placeholder="Check-in"/>
+    <input readonly id="checkout"  placeholder="Check-out"/>
     <button id="bookBtn">Book</button>
   </div>
 
   <div id="message"></div>
   <div id="calendar"></div>
 
-  <!-- Libraries -->
+  <!-- Modal for user info & payment -->
+  <div class="modal-backdrop" id="bookingModal">
+    <div class="modal">
+      <h2>Complete your booking</h2>
+      <form id="bookingForm">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" required/>
+
+        <label for="email">Email</label>
+        <input type="email" id="email" required/>
+
+        <label for="card">Card Number</label>
+        <input type="text" id="card" placeholder="4242 4242 4242 4242" required/>
+
+        <label for="exp">Expiry (MM/YY)</label>
+        <input type="text" id="exp" placeholder="12/34" required/>
+
+        <label for="cvc">CVC</label>
+        <input type="text" id="cvc" placeholder="123" required/>
+
+        <div class="actions">
+          <button type="button" id="cancelBtn">Cancel</button>
+          <button type="submit">Confirm Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       const API_KEY       = 'supersecretkey';
@@ -34,102 +96,120 @@
       const msgEl         = document.getElementById('message');
       const calendarEl    = document.getElementById('calendar');
 
-      function showMessage(text, type='error') {
-        msgEl.textContent = text;
+      const modalBg  = document.getElementById('bookingModal');
+      const form     = document.getElementById('bookingForm');
+      const cancel   = document.getElementById('cancelBtn');
+
+      function showMessage(txt, type='error') {
+        msgEl.textContent = txt;
         msgEl.className   = type;
         setTimeout(() => msgEl.textContent = '', 5000);
       }
 
-      // 1) Load existing data
-      let unavailable = [], prices = {};
+      // 1) Load existing bookings & prices
+      let blocked = [], prices = {};
       try {
-        const [bRes, pRes] = await Promise.all([
+        const [bRes,pRes] = await Promise.all([
           fetch('/api/bookings'),
           fetch('/api/prices')
         ]);
         const bookingsData = await bRes.json();
         prices = await pRes.json();
-
         bookingsData.forEach(b => {
-          let d = new Date(b.start),
-              e = new Date(b.end);
+          let d = new Date(b.start), e = new Date(b.end);
           while (d <= e) {
-            unavailable.push(d.toISOString().slice(0,10));
+            blocked.push(d.toISOString().slice(0,10));
             d.setDate(d.getDate()+1);
           }
         });
       } catch {
-        return showMessage('Failed to load data.', 'error');
+        return showMessage('Failed loading data','error');
       }
 
       // 2) Render calendar
       const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        selectable: true,
+        initialView: 'dayGridMonth', selectable: true,
         selectAllow: sel => {
           let d = new Date(sel.start), e = new Date(sel.end);
           while (d < e) {
-            if (unavailable.includes(d.toISOString().slice(0,10))) return false;
+            if (blocked.includes(d.toISOString().slice(0,10))) return false;
             d.setDate(d.getDate()+1);
           }
           return true;
         },
         select: info => {
           checkinInput.value  = luxon.DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
-          const ln = new Date(info.end);
-          ln.setDate(ln.getDate()-1);
+          const ln = new Date(info.end); ln.setDate(ln.getDate()-1);
           checkoutInput.value = luxon.DateTime.fromJSDate(ln).toFormat('yyyy-LL-dd');
         },
         dayCellDidMount: info => {
           const ds = info.date.toISOString().slice(0,10);
-          if (unavailable.includes(ds)) {
-            info.el.classList.add('fc-day-disabled');
-          }
+          if (blocked.includes(ds)) info.el.classList.add('fc-day-disabled');
           if (prices[ds] != null) {
-            const div = document.createElement('div');
-            div.className   = 'day-price';
-            div.textContent = '$' + prices[ds];
+            const d = document.createElement('div');
+            d.className   = 'day-price';
+            d.textContent = '$'+prices[ds];
             info.el.style.position = 'relative';
-            info.el.appendChild(div);
+            info.el.appendChild(d);
           }
         }
       });
       calendar.render();
 
-      // 3) Responsive view
-      function updateView() {
-        if (window.innerWidth < 600) calendar.changeView('listMonth');
-        else calendar.changeView('dayGridMonth');
-      }
+      // 3) Responsive
+      const updateView = () => {
+        calendar.changeView(window.innerWidth<600 ? 'listMonth' : 'dayGridMonth');
+      };
       window.addEventListener('resize', updateView);
       updateView();
 
-      // 4) Booking logic
-      bookBtn.addEventListener('click', async () => {
+      // 4) Show modal on Book
+      bookBtn.addEventListener('click', () => {
         if (!checkinInput.value || !checkoutInput.value) {
-          return showMessage('Please select dates first.', 'error');
+          return showMessage('Select dates first','error');
         }
+        modalBg.style.display = 'flex';
+      });
+
+      // 5) Cancel modal
+      cancel.addEventListener('click', () => modalBg.style.display = 'none');
+
+      // 6) Form submit
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const name  = form.querySelector('#name').value.trim();
+        const email = form.querySelector('#email').value.trim();
+        // Payment fields (stub—do not send raw card data in prod!)
+        const card  = form.querySelector('#card').value;
+        const exp   = form.querySelector('#exp').value;
+        const cvc   = form.querySelector('#cvc').value;
+
         try {
           const res = await fetch('/api/bookings', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'X-API-KEY':     API_KEY
+              'Content-Type':'application/json',
+              'X-API-KEY':    API_KEY
             },
             body: JSON.stringify({
+              name, email,
               start: checkinInput.value,
-              end:   checkoutInput.value
+              end:   checkoutInput.value,
+              // payment info stub:
+              payment: { card, exp, cvc }
             })
           });
           if (res.status === 409) {
-            return showMessage('That range is already booked.', 'error');
+            showMessage('Dates already booked','error');
+          } else if (!res.ok) {
+            showMessage('Booking failed','error');
+          } else {
+            showMessage('Booked!','success');
+            setTimeout(() => location.reload(), 1000);
           }
-          if (!res.ok) throw new Error();
-          showMessage('Booking successful!', 'success');
-          setTimeout(() => location.reload(), 1000);
-        }
-        catch {
-          showMessage('Booking failed. Check console.', 'error');
+        } catch(err) {
+          console.error(err);
+          showMessage('Network error','error');
         }
       });
     });
