@@ -1,5 +1,5 @@
 // server.js
-require('dotenv').config();             // if you’re using a local .env
+
 const express    = require('express');
 const cors       = require('cors');
 const path       = require('path');
