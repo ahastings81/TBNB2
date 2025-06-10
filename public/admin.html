@@ -57,12 +57,13 @@
     <div id="message"></div>
   </div>
 
-  <!-- FullCalendar & Luxon -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script>
     const API_KEY = 'supersecretkey';
     let adminMode = true;
+
+    const bc = new BroadcastChannel('calendar-sync');  // channel for broadcasting updates
 
     const toggleBtn   = document.getElementById('modeToggle');
     const adminPanels = document.getElementById('adminPanels');
@@ -172,6 +173,9 @@
         cell.style.position = 'relative';
         cell.appendChild(d);
       }
+      // broadcast to any open index.html or user views
+      bc.postMessage({ type: 'prices-updated' });
+
       // refresh user calendar
       userCal.destroy();
       initUserCalendar();
@@ -187,6 +191,8 @@
       const res = await fetch('/api/upload', { method:'POST', body: fd });
       const data = await res.json();
       uploadMsg.textContent = data.url;
+      // broadcast in case index.html wants to refresh image gallery
+      bc.postMessage({ type: 'images-updated' });
     };
 
     // USER CALENDAR
@@ -208,6 +214,20 @@
       });
       userCal.render();
     }
+
+    // Listen for broadcasts (also works across tabs on same origin)
+    bc.onmessage = e => {
+      if (e.data.type === 'prices-updated') {
+        // re-fetch prices and update both calendars
+        fetch('/api/prices').then(r => r.json()).then(newPrices => {
+          prices = newPrices;
+          adminCal.destroy();
+          initAdminCalendar();
+          userCal.destroy();
+          initUserCalendar();
+        });
+      }
+    };
   </script>
 </body>
 </html>
