@@ -7,11 +7,9 @@
 
   <!-- FullCalendar CSS -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
-  <!-- Your site CSS -->
   <link rel="stylesheet" href="style.css"/>
 
   <style>
-    /* Ensure modals and toggle button layer correctly */
     #modeToggle       { position: fixed; top: 1rem; left: 1rem; z-index: 10001; }
     #logoutForm       { position: fixed; top: 1rem; right: 1rem; z-index: 10001; }
     #adminPanels,
@@ -21,13 +19,12 @@
   </style>
 </head>
 <body>
-  <!-- Toggle and Logout -->
   <button id="modeToggle">Switch to User View</button>
   <form id="logoutForm" action="/logout" method="POST">
     <button type="submit">Log Out</button>
   </form>
 
-  <!-- ADMIN MODE PANELS -->
+  <!-- ADMIN MODE -->
   <div id="adminPanels">
     <h2>Price Calendar</h2>
     <div id="adminCalendar"></div>
@@ -53,80 +50,76 @@
     </div>
   </div>
 
-  <!-- USER MODE VIEW -->
+  <!-- USER MODE -->
   <div id="userCalendar">
     <h2>Guest Calendar Preview</h2>
     <div id="calendar"></div>
     <div id="message"></div>
   </div>
 
-  <!-- Libraries -->
+  <!-- FullCalendar & Luxon -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
-
   <script>
-    const API_KEY     = 'supersecretkey'; // same key your server expects
-    let adminMode     = true;
+    const API_KEY = 'supersecretkey';
+    let adminMode = true;
 
     const toggleBtn   = document.getElementById('modeToggle');
     const adminPanels = document.getElementById('adminPanels');
-    const userCal     = document.getElementById('userCalendar');
+    const userCalDiv  = document.getElementById('userCalendar');
 
-    // modal & form refs
     const priceModal  = document.getElementById('priceModal');
     const priceDate   = document.getElementById('priceDate');
     const priceInput  = document.getElementById('priceInput');
     const priceForm   = document.getElementById('priceForm');
     const priceCancel = document.getElementById('priceCancel');
 
-    // image upload refs
     const uploadBtn   = document.getElementById('uploadBtn');
     const imageFile   = document.getElementById('imageFile');
     const uploadMsg   = document.getElementById('uploadMsg');
 
-    // calendars' containers
     const adminCalEl  = document.getElementById('adminCalendar');
     const userCalEl   = document.getElementById('calendar');
     const messageEl   = document.getElementById('message');
 
-    // Toggle between admin/user views
+    let bookings = [], prices = {};
+    let adminCal, userCal;
+
+    // Toggle admin/user view
     toggleBtn.addEventListener('click', () => {
       adminMode = !adminMode;
       adminPanels.style.display = adminMode ? 'block' : 'none';
-      userCal.style.display     = adminMode ? 'none'  : 'block';
-      toggleBtn.textContent     = adminMode ? 'Switch to User View' : 'Switch to Admin View';
+      userCalDiv.style.display  = adminMode ? 'none'  : 'block';
+      toggleBtn.textContent      = adminMode ? 'Switch to User View' : 'Switch to Admin View';
     });
-    // initialize to admin view
-    adminPanels.style.display = 'block';
+    adminPanels.style.display = 'block';  // start in admin mode
 
-    // Load bookings & prices once for both calendars
-    let bookings = [], prices = {};
+    // Load data
     (async () => {
       [bookings, prices] = await Promise.all([
         fetch('/api/bookings').then(r => r.json()),
-        fetch('/api/prices').then(r => r.json()),
+        fetch('/api/prices').then(r => r.json())
       ]);
       initAdminCalendar();
       initUserCalendar();
     })();
 
-    // Helper to expand booked dates
-    function getBlockedDates() {
-      const blocked = new Set();
+    function getBlockedSet() {
+      const s = new Set();
       bookings.forEach(b => {
-        let d = new Date(b.start), end = new Date(b.end);
-        while (d <= end) {
-          blocked.add(d.toISOString().slice(0,10));
+        let d = new Date(b.start), e = new Date(b.end);
+        while (d <= e) {
+          s.add(d.toISOString().slice(0,10));
           d.setDate(d.getDate()+1);
         }
       });
-      return blocked;
+      return s;
     }
 
-    // ========== ADMIN CALENDAR ==========
+    // ADMIN CALENDAR
     function initAdminCalendar() {
-      const blocked = getBlockedDates();
-      const cal = new FullCalendar.Calendar(adminCalEl, {
+      const blocked = getBlockedSet();
+      adminCal = new FullCalendar.Calendar(adminCalEl, {
         initialView: 'dayGridMonth',
         dateClick: info => openPriceModal(info.dateStr),
         dayCellDidMount: info => {
@@ -141,7 +134,7 @@
           }
         }
       });
-      cal.render();
+      adminCal.render();
     }
 
     function openPriceModal(dateStr) {
@@ -155,45 +148,51 @@
       e.preventDefault();
       const date  = priceDate.textContent;
       const price = Number(priceInput.value);
+
       const res = await fetch('/api/prices', {
-        method:'POST',
-        headers:{
+        method: 'POST',
+        headers: {
           'Content-Type':'application/json',
           'X-API-KEY':    API_KEY
         },
         body: JSON.stringify({ date, price })
       });
       if (!res.ok) {
-        alert('Error saving price');
-      } else {
-        // update local and UI
-        prices[date] = price;
-        // refresh calendar cell
-        document.querySelector(`.fc-day[data-date="${date}"] .day-price`)?.remove();
-        const cell = document.querySelector(`.fc-day[data-date="${date}"]`);
+        return alert('Error saving price');
+      }
+      // update local data
+      prices[date] = price;
+      // update admin calendar cell
+      const cell = document.querySelector(`.fc-day[data-date="${date}"]`);
+      if (cell) {
+        cell.querySelector('.day-price')?.remove();
         const d = document.createElement('div');
         d.className   = 'day-price';
         d.textContent = '$' + price;
         cell.style.position = 'relative';
         cell.appendChild(d);
       }
+      // refresh user calendar
+      userCal.destroy();
+      initUserCalendar();
+
       priceModal.style.display = 'none';
     };
 
-    // ========== IMAGE UPLOAD ==========
+    // IMAGE UPLOAD
     uploadBtn.onclick = async () => {
       if (!imageFile.files[0]) return;
       const fd = new FormData();
       fd.append('image', imageFile.files[0]);
-      const res = await fetch('/api/upload', { method:'POST', body:fd });
+      const res = await fetch('/api/upload', { method:'POST', body: fd });
       const data = await res.json();
       uploadMsg.textContent = data.url;
     };
 
-    // ========== USER CALENDAR ==========
+    // USER CALENDAR
     function initUserCalendar() {
-      const blocked = getBlockedDates();
-      const cal = new FullCalendar.Calendar(userCalEl, {
+      const blocked = getBlockedSet();
+      userCal = new FullCalendar.Calendar(userCalEl, {
         initialView: 'dayGridMonth',
         dayCellDidMount: info => {
           const ds = info.date.toISOString().slice(0,10);
@@ -207,7 +206,7 @@
           }
         }
       });
-      cal.render();
+      userCal.render();
     }
   </script>
 </body>
