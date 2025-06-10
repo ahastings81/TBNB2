@@ -51,3 +51,12 @@ body {
 #message.success {
   color: #060;
 }
+.modal-backdrop {
+  /* existing rules… */
+  z-index: 9999;
+}
+
+.modal {
+  /* existing rules… */
+  z-index: 10000;
+}
