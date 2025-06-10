@@ -1,0 +1,53 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 1rem;
+}
+
+#calendar {
+  max-width: 800px;
+  margin: 2rem auto;
+}
+
+.fc-day-disabled {
+  background-color: #e0e0e0 !important;
+  cursor: not-allowed;
+}
+
+.day-price {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 0.75rem;
+  color: #333;
+}
+
+.inputs {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.inputs input,
+.inputs button {
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+.inputs input {
+  margin: 0 0.5rem;
+  width: 140px;
+}
+
+#message {
+  text-align: center;
+  margin: 1rem auto;
+  font-weight: bold;
+  min-height: 1.2em;
+}
+
+#message.error {
+  color: #c00;
+}
+
+#message.success {
+  color: #060;
+}

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Condo Booking Calendar</title>
+
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
+  <!-- Your custom styles -->
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <div class="inputs">
+    <input readonly id="checkin"  placeholder="Check-in"/>
+    <input readonly id="checkout" placeholder="Check-out"/>
+    <button id="bookBtn">Book</button>
+  </div>
+
+  <div id="message"></div>
+  <div id="calendar"></div>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const API_KEY       = 'supersecretkey';
+      const checkinInput  = document.getElementById('checkin');
+      const checkoutInput = document.getElementById('checkout');
+      const bookBtn       = document.getElementById('bookBtn');
+      const msgEl         = document.getElementById('message');
+      const calendarEl    = document.getElementById('calendar');
+
+      function showMessage(text, type='error') {
+        msgEl.textContent = text;
+        msgEl.className   = type;
+        setTimeout(() => msgEl.textContent = '', 5000);
+      }
+
+      // 1) Load existing data
+      let unavailable = [], prices = {};
+      try {
+        const [bRes, pRes] = await Promise.all([
+          fetch('/api/bookings'),
+          fetch('/api/prices')
+        ]);
+        const bookingsData = await bRes.json();
+        prices = await pRes.json();
+
+        bookingsData.forEach(b => {
+          let d = new Date(b.start),
+              e = new Date(b.end);
+          while (d <= e) {
+            unavailable.push(d.toISOString().slice(0,10));
+            d.setDate(d.getDate()+1);
+          }
+        });
+      } catch {
+        return showMessage('Failed to load data.', 'error');
+      }
+
+      // 2) Render calendar
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        selectable: true,
+        selectAllow: sel => {
+          let d = new Date(sel.start), e = new Date(sel.end);
+          while (d < e) {
+            if (unavailable.includes(d.toISOString().slice(0,10))) return false;
+            d.setDate(d.getDate()+1);
+          }
+          return true;
+        },
+        select: info => {
+          checkinInput.value  = luxon.DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
+          const ln = new Date(info.end);
+          ln.setDate(ln.getDate()-1);
+          checkoutInput.value = luxon.DateTime.fromJSDate(ln).toFormat('yyyy-LL-dd');
+        },
+        dayCellDidMount: info => {
+          const ds = info.date.toISOString().slice(0,10);
+          if (unavailable.includes(ds)) {
+            info.el.classList.add('fc-day-disabled');
+          }
+          if (prices[ds] != null) {
+            const div = document.createElement('div');
+            div.className   = 'day-price';
+            div.textContent = '$' + prices[ds];
+            info.el.style.position = 'relative';
+            info.el.appendChild(div);
+          }
+        }
+      });
+      calendar.render();
+
+      // 3) Responsive view
+      function updateView() {
+        if (window.innerWidth < 600) calendar.changeView('listMonth');
+        else calendar.changeView('dayGridMonth');
+      }
+      window.addEventListener('resize', updateView);
+      updateView();
+
+      // 4) Booking logic
+      bookBtn.addEventListener('click', async () => {
+        if (!checkinInput.value || !checkoutInput.value) {
+          return showMessage('Please select dates first.', 'error');
+        }
+        try {
+          const res = await fetch('/api/bookings', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-KEY':     API_KEY
+            },
+            body: JSON.stringify({
+              start: checkinInput.value,
+              end:   checkoutInput.value
+            })
+          });
+          if (res.status === 409) {
+            return showMessage('That range is already booked.', 'error');
+          }
+          if (!res.ok) throw new Error();
+          showMessage('Booking successful!', 'success');
+          setTimeout(() => location.reload(), 1000);
+        }
+        catch {
+          showMessage('Booking failed. Check console.', 'error');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
