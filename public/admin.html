@@ -91,6 +91,9 @@
       adminPanels.style.display = adminMode ? 'block' : 'none';
       userCalDiv.style.display  = adminMode ? 'none'  : 'block';
       toggleBtn.textContent      = adminMode ? 'Switch to User View' : 'Switch to Admin View';
+      if (!adminMode && userCal) {
+        userCal.render();
+      }
     });
     // Start in admin view
     adminPanels.style.display = 'block';
@@ -137,7 +140,7 @@
             badge.className   = 'day-price';
             badge.textContent = '$' + prices[ds];
             info.el.style.position = 'relative';
-            info.el.append(badge);
+            info.el.appendChild(badge);
           }
         }
       });
@@ -154,11 +157,14 @@
             badge.className   = 'day-price';
             badge.textContent = '$' + prices[ds];
             info.el.style.position = 'relative';
-            info.el.append(badge);
+            info.el.appendChild(badge);
           }
         }
       });
-      userCal.render();
+      // Don't render userCal until visible
+      if (!adminMode) {
+        userCal.render();
+      }
     }
 
     function openPriceModal(dateStr) {
