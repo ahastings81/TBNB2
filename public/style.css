@@ -1,9 +1,202 @@
-body { font-family: Arial, sans-serif; margin: 0; padding: 1rem; }
-.login-container, #adminPanels, #userCalendar { max-width: 800px; margin: 2rem auto; }
-input, button { padding: 0.5rem; font-size: 1rem; }
-.modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9998 !important; }
-.modal { background: white; padding: 1.5rem; border-radius: 0.5rem; max-width: 400px; width: 100%; z-index: 9999 !important; }
-.error { color: #c00; }
-.success { color: #060; }
-.day-price { position: absolute; bottom: 2px; right: 2px; font-size: 0.75rem; }
-.fc-day-disabled { background: #eee !important; cursor: not-allowed; }
+/* ======================
+   Variables & Reset
+   ====================== */
+:root {
+  --primary:   #2a9d8f;
+  --secondary: #264653;
+  --accent:    #e9c46a;
+  --bg:        #f0f4f8;
+  --fg:        #333;
+  --radius:    0.5rem;
+  --transition: 0.3s;
+  --max-width: 1200px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.6;
+}
+
+/* ======================
+   Layout Container
+   ====================== */
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* ======================
+   Inputs & Buttons
+   ====================== */
+.inputs {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.inputs input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+  transition: border-color var(--transition);
+}
+.inputs input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+button,
+.btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--transition), transform var(--transition);
+}
+button:hover,
+.btn:hover {
+  background: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* ======================
+   Login Form
+   ====================== */
+.login-container {
+  background: #fff;
+  padding: 2rem;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.login-container h1 {
+  margin-bottom: 1rem;
+  color: var(--secondary);
+}
+.login-container label {
+  display: block;
+  margin: 0.5rem 0 0.25rem;
+}
+.login-container input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+  transition: border-color var(--transition);
+}
+.login-container input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+/* ======================
+   Messages
+   ====================== */
+#message,
+#uploadMsg {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.error {
+  color: #c00;
+}
+.success {
+  color: #060;
+}
+
+/* ======================
+   Calendar Container
+   ====================== */
+#calendar {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  max-width: 800px;
+  margin: 0 auto 2rem;
+  padding: 1rem;
+}
+
+/* ======================
+   Modal Styles
+   ====================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-backdrop.active {
+  display: flex;
+}
+.modal {
+  background: #fff;
+  padding: 2rem;
+  border-radius: var(--radius);
+  max-width: 500px;
+  width: 90%;
+  position: relative;
+}
+.modal h2 {
+  margin-top: 0;
+}
+.modal label {
+  display: block;
+  margin: 0.5rem 0 0.25rem;
+}
+.modal input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+  transition: border-color var(--transition);
+}
+.modal button {
+  margin-right: 1rem;
+}
+
+/* ======================
+   Admin Toggle & Panels
+   ====================== */
+#modeToggle {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10001;
+}
+#logoutForm {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10001;
+}
+#adminPanels,
+#userCalendar {
+  max-width: 800px;
+  margin: 4rem auto 2rem;
+}
+
+/* ======================
+   FullCalendar Disabled Day
+   ====================== */
+.fc-day-disabled {
+  background: #eee !important;
+  cursor: not-allowed;
+}
