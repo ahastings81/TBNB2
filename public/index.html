@@ -9,8 +9,8 @@
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <style>
-    /* Ensure calendar day cells are relative for badge positioning */
-    .calendar .fc-daygrid-day-frame {
+    /* Ensure each day cell is relative for badge positioning */
+    .calendar .fc-daygrid-day {
       position: relative;
     }
     .day-price {
@@ -132,17 +132,17 @@
   <script>
     // Carousel functionality
     const slides = document.querySelector('.carousel-slides');
-    let index = 0;
+    let idx = 0;
     document.querySelector('.carousel-next').addEventListener('click', () => {
-      index = (index + 1) % slides.children.length;
-      slides.style.transform = `translateX(-${index * 100}%)`;
+      idx = (idx + 1) % slides.children.length;
+      slides.style.transform = `translateX(-${idx * 100}%)`;
     });
     document.querySelector('.carousel-prev').addEventListener('click', () => {
-      index = (index - 1 + slides.children.length) % slides.children.length;
-      slides.style.transform = `translateX(-${index * 100}%)`;
+      idx = (idx - 1 + slides.children.length) % slides.children.length;
+      slides.style.transform = `translateX(-${idx * 100}%)`;
     });
 
-    // Booking calendar code with precise badge placement
+    // Booking calendar with precise badge placement
     const DateTime = luxon.DateTime;
     const bc = new BroadcastChannel('calendar-sync');
     bc.onmessage = async e => {
@@ -192,14 +192,13 @@
           outEl.value = DateTime.fromJSDate(last).toFormat('yyyy-LL-dd');
         },
         dayCellDidMount: info => {
-          const frame = info.el.querySelector('.fc-daygrid-day-frame');
           const ds = DateTime.fromJSDate(info.date).toISODate();
-          if (blocked.has(ds)) frame.classList.add('fc-day-disabled');
+          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
           if (prices[ds] != null) {
-            const badge = document.createElement('div');
-            badge.className = 'day-price';
-            badge.textContent = '$' + prices[ds];
-            frame.appendChild(badge);
+            info.el.appendChild(Object.assign(document.createElement('div'), {
+              className: 'day-price',
+              textContent: '$' + prices[ds]
+            }));
           }
         }
       });
@@ -216,5 +215,52 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       await initBookingCalendar();
+      const inEl = document.getElementById('checkin');
+      const outEl = document.getElementById('checkout');
+      const btn = document.getElementById('bookBtn');
+      const msg = document.getElementById('message');
+      const modal = document.getElementById('bookingModal');
+      const form = document.getElementById('bookingForm');
+      const cancel = document.getElementById('cancelBtn');
 
-      const inEl = document.getElementById('checkin'
+      const showMessage = (txt, type = 'error') => {
+        msg.textContent = txt;
+        msg.className = type;
+        setTimeout(() => msg.textContent = '', 5000);
+      };
+
+      btn.addEventListener('click', () => {
+        if (!inEl.value || !outEl.value) return showMessage('Select dates first');
+        modal.style.display = 'flex';
+      });
+
+      cancel.addEventListener('click', () => modal.style.display = 'none');
+
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const data = {
+          name: form.name.value.trim(),
+          email: form.email.value.trim(),
+          start: inEl.value,
+          end: outEl.value,
+          payment: { card: form.card.value, exp: form.exp.value, cvc: form.cvc.value }
+        };
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-API-KEY': API_KEY },
+          body: JSON.stringify(data)
+        });
+        if (res.status === 409) showMessage('Dates already booked');
+        else if (!res.ok) showMessage('Booking failed');
+        else {
+          showMessage('Booked!', 'success');
+          setTimeout(async () => {
+            modal.style.display = 'none';
+            await initBookingCalendar();
+          }, 1000);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
