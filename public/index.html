@@ -55,10 +55,9 @@
     const bc      = new BroadcastChannel('calendar-sync');
     let bookings = [], prices = {}, calendar;
 
-    // Load initial data and render
+    // Initialize or re-initialize the booking calendar
     async function initBookingCalendar() {
       if (calendar) calendar.destroy();
-
       calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'dayGridMonth',
         selectable: true,
@@ -67,7 +66,6 @@
         validRange: { start: new Date().toISOString().slice(0,10) },
 
         selectAllow: sel => {
-          // disallow if any day in range already booked
           for (let d = new Date(sel.start); d < sel.end; d.setDate(d.getDate()+1)) {
             if (bookings.some(b => b.date === d.toISOString().slice(0,10))) return false;
           }
@@ -75,9 +73,9 @@
         },
 
         select: info => {
-          document.getElementById('checkin').value  =
+          document.getElementById('checkin').value =
             luxon.DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
-          const out = new Date(info.end);
+          let out = new Date(info.end);
           out.setDate(out.getDate() - 1);
           document.getElementById('checkout').value =
             luxon.DateTime.fromJSDate(out).toFormat('yyyy-LL-dd');
@@ -85,27 +83,22 @@
 
         dayCellDidMount: info => {
           const ds = info.date.toISOString().slice(0,10);
-
-          // disable booked days
           if (bookings.some(b => b.date === ds)) {
             info.el.classList.add('fc-day-disabled');
           }
-
-          // show price if set
           if (prices[ds] != null) {
-            const priceEl = document.createElement('div');
-            priceEl.className  = 'day-price';
-            priceEl.textContent = '$' + prices[ds];
+            const e = document.createElement('div');
+            e.className   = 'day-price';
+            e.textContent = '$' + prices[ds];
             info.el.style.position = 'relative';
-            info.el.appendChild(priceEl);
+            info.el.appendChild(e);
           }
         }
       });
-
       calendar.render();
     }
 
-    // Initial data fetch + render
+    // Fetch data + initial render
     (async () => {
       [bookings, prices] = await Promise.all([
         fetch('/api/bookings').then(r => r.json()),
@@ -114,8 +107,9 @@
       initBookingCalendar();
     })();
 
-    // Listen for admin broadcasts
+    // Listen for broadcasts
     bc.onmessage = async e => {
+      console.log('[index] bc message:', e.data);
       if (e.data.type === 'prices-updated' || e.data.type === 'new-booking') {
         [bookings, prices] = await Promise.all([
           fetch('/api/bookings').then(r => r.json()),
@@ -140,7 +134,8 @@
       }
 
       bookBtn.addEventListener('click', () => {
-        if (!document.getElementById('checkin').value || !document.getElementById('checkout').value) {
+        if (!document.getElementById('checkin').value ||
+            !document.getElementById('checkout').value) {
           return showMessage('Select dates first');
         }
         bookingModal.classList.add('active');
