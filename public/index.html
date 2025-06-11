@@ -20,7 +20,7 @@
     <div id="message"></div>
     <div id="calendar"></div>
 
-    <!-- Modal for user info & payment -->
+    <!-- Booking Modal -->
     <div class="modal-backdrop" id="bookingModal">
       <div class="modal">
         <h2>Complete your booking</h2>
@@ -47,136 +47,144 @@
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- Luxon & FullCalendar -->
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
-    // ─── BroadcastChannel for live sync with admin dashboard ─────────
-    const bc = new BroadcastChannel('calendar-sync');
-    bc.onmessage = async e => {
-      if (e.data.type === 'prices-updated') {
-        // re-fetch bookings & prices, destroy and re-init calendar
-        bookings  = await fetch('/api/bookings').then(r => r.json());
-        prices    = await fetch('/api/prices').then(r => r.json());
-        calendar.destroy();
-        initBookingCalendar();
-      }
-    };
+    const API_KEY = 'supersecretkey';
+    const bc      = new BroadcastChannel('calendar-sync');
+    let bookings = [], prices = {}, calendar;
 
-    const API_KEY   = 'supersecretkey';
-    let bookings    = [], prices = {};
-    let calendar;
+    // Load initial data and render
+    async function initBookingCalendar() {
+      if (calendar) calendar.destroy();
 
-    document.addEventListener('DOMContentLoaded', async () => {
+      calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialView: 'dayGridMonth',
+        selectable: true,
+        selectOverlap: false,
+        height: 'auto',
+        validRange: { start: new Date().toISOString().slice(0,10) },
+
+        selectAllow: sel => {
+          // disallow if any day in range already booked
+          for (let d = new Date(sel.start); d < sel.end; d.setDate(d.getDate()+1)) {
+            if (bookings.some(b => b.date === d.toISOString().slice(0,10))) return false;
+          }
+          return true;
+        },
+
+        select: info => {
+          document.getElementById('checkin').value  =
+            luxon.DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
+          const out = new Date(info.end);
+          out.setDate(out.getDate() - 1);
+          document.getElementById('checkout').value =
+            luxon.DateTime.fromJSDate(out).toFormat('yyyy-LL-dd');
+        },
+
+        dayCellDidMount: info => {
+          const ds = info.date.toISOString().slice(0,10);
+
+          // disable booked days
+          if (bookings.some(b => b.date === ds)) {
+            info.el.classList.add('fc-day-disabled');
+          }
+
+          // show price if set
+          if (prices[ds] != null) {
+            const priceEl = document.createElement('div');
+            priceEl.className  = 'day-price';
+            priceEl.textContent = '$' + prices[ds];
+            info.el.style.position = 'relative';
+            info.el.appendChild(priceEl);
+          }
+        }
+      });
+
+      calendar.render();
+    }
+
+    // Initial data fetch + render
+    (async () => {
       [bookings, prices] = await Promise.all([
         fetch('/api/bookings').then(r => r.json()),
         fetch('/api/prices').then(r => r.json())
       ]);
+      initBookingCalendar();
+    })();
 
-      const bookBtn       = document.getElementById('bookBtn');
-      const bookingModal  = document.getElementById('bookingModal');
-      const cancelBtn     = document.getElementById('cancelBtn');
-      const msgEl         = document.getElementById('message');
-      const form          = document.getElementById('bookingForm');
+    // Listen for admin broadcasts
+    bc.onmessage = async e => {
+      if (e.data.type === 'prices-updated' || e.data.type === 'new-booking') {
+        [bookings, prices] = await Promise.all([
+          fetch('/api/bookings').then(r => r.json()),
+          fetch('/api/prices').then(r => r.json())
+        ]);
+        initBookingCalendar();
+      }
+    };
 
-      function showMessage(txt, type = 'error') {
+    // Booking flow
+    document.addEventListener('DOMContentLoaded', () => {
+      const bookBtn      = document.getElementById('bookBtn');
+      const bookingModal = document.getElementById('bookingModal');
+      const cancelBtn    = document.getElementById('cancelBtn');
+      const msgEl        = document.getElementById('message');
+      const form         = document.getElementById('bookingForm');
+
+      function showMessage(txt, type='error') {
         msgEl.textContent = txt;
         msgEl.className   = type;
         setTimeout(() => msgEl.textContent = '', 5000);
       }
 
-      function initBookingCalendar() {
-        calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-          initialView: 'dayGridMonth',
-          selectable: true,
-          selectOverlap: false,
-          height: 'auto',
-          validRange: info => ({
-            start: new Date().toISOString().slice(0,10)
-          }),
-          selectAllow: dateSelect => {
-            const start = dateSelect.start;
-            const end   = new Date(dateSelect.end);
-            // disallow if any day in range is booked
-            for(let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
-              if (bookings.some(b => new Date(b.date).toDateString() === d.toDateString()))
-                return false;
-            }
-            return true;
-          },
-          select: info => {
-            document.getElementById('checkin').value  = luxon.DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
-            const out             = new Date(info.end);
-            out.setDate(out.getDate() - 1);
-            document.getElementById('checkout').value = luxon.DateTime.fromJSDate(out).toFormat('yyyy-LL-dd');
-          },
-          dayCellDidMount: info => {
-            const ds = info.date.toISOString().split('T')[0];
-            if (bookings.some(b => b.date === ds))
-              info.el.classList.add('fc-day-disabled');
-
-            if (prices[ds] != null) {
-              const priceEl      = document.createElement('div');
-              priceEl.className  = 'day-price';
-              priceEl.textContent = '$' + prices[ds];
-              info.el.style.position = 'relative';
-              info.el.appendChild(priceEl);
-            }
-          }
-        });
-        calendar.render();
-      }
-
-      initBookingCalendar();
-
-      // Open modal
       bookBtn.addEventListener('click', () => {
         if (!document.getElementById('checkin').value || !document.getElementById('checkout').value) {
-          return showMessage('Select dates first', 'error');
+          return showMessage('Select dates first');
         }
         bookingModal.classList.add('active');
       });
 
-      // Cancel
       cancelBtn.addEventListener('click', () => {
         bookingModal.classList.remove('active');
       });
 
-      // Submit booking
       form.addEventListener('submit', async e => {
         e.preventDefault();
         const payload = {
-          name : form.querySelector('#name').value.trim(),
-          email: form.querySelector('#email').value.trim(),
-          card : form.querySelector('#card').value,
-          exp  : form.querySelector('#exp').value,
-          cvc  : form.querySelector('#cvc').value,
-          checkin : document.getElementById('checkin').value,
+          name:     form.name.value.trim(),
+          email:    form.email.value.trim(),
+          card:     form.card.value,
+          exp:      form.exp.value,
+          cvc:      form.cvc.value,
+          checkin:  document.getElementById('checkin').value,
           checkout: document.getElementById('checkout').value
         };
+
         try {
-          const res = await fetch('/api/bookings', {
-            method: 'POST',
+          const res  = await fetch('/api/bookings', {
+            method:  'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-API-KEY':    API_KEY
+              'X-API-KEY':     API_KEY
             },
             body: JSON.stringify(payload)
           });
           const data = await res.json();
+
           if (data.success) {
             showMessage('Booking confirmed!', 'success');
             bc.postMessage({ type: 'new-booking' });
             setTimeout(() => {
               bookingModal.classList.remove('active');
               initBookingCalendar();
-            }, 1000);
+            }, 500);
           } else {
-            showMessage(data.error || 'Booking failed', 'error');
+            showMessage(data.error || 'Booking failed');
           }
-        } catch (err) {
-          console.error(err);
-          showMessage('Network error', 'error');
+        } catch {
+          showMessage('Network error');
         }
       });
     });
