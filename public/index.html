@@ -3,188 +3,167 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Condo Booking</title>
+  <title>Beachfront Condo A403</title>
 
   <!-- FullCalendar & CSS -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
-  <style>
-    /* Price badge positioning */
-    .day-price { position: absolute; bottom: 2px; right: 2px; font-size: 0.75em; pointer-events: none; }
-  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="inputs">
-      <input readonly id="checkin" placeholder="Check-in"/>
-      <input readonly id="checkout" placeholder="Check-out"/>
-      <button id="bookBtn" class="btn">Book</button>
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container">
+      <h1 class="site-title">Beachfront Condo A403</h1>
     </div>
+  </header>
 
-    <div id="message"></div>
-    <div id="calendar"></div>
+  <!-- Hero Image -->
+  <section class="hero">
+    <img src="images/hero-beachfront.jpg" alt="Ocean view from condo" class="hero-img"/>
+    <div class="hero-overlay">
+      <h2>Wake Up to Ocean Breezes</h2>
+      <p>Luxury 2 Bed • 2 Bath • Oceanfront</p>
+    </div>
+  </section>
 
-    <!-- Booking Modal -->
-    <div class="modal-backdrop" id="bookingModal">
-      <div class="modal">
-        <h2>Complete your booking</h2>
-        <form id="bookingForm">
-          <label for="name">Full Name</label>
-          <input type="text" id="name" required/>
+  <!-- Photo Carousel -->
+  <section class="photo-carousel container">
+    <h2>Gallery</h2>
+    <div class="carousel-wrapper">
+      <button class="carousel-prev" aria-label="Previous image">&#10094;</button>
+      <div class="carousel-slides">
+        <img src="images/condo1.jpg" alt="Living room view"/>
+        <img src="images/condo2.jpg" alt="Master bedroom"/>
+        <img src="images/condo3.jpg" alt="Balcony view"/>
+        <img src="images/condo4.jpg" alt="Kitchen"/>
+      </div>
+      <button class="carousel-next" aria-label="Next image">&#10095;</button>
+    </div>
+  </section>
 
-          <label for="email">Email</label>
-          <input type="email" id="email" required/>
+  <!-- Features & Amenities -->
+  <section class="features container">
+    <h2>Features & Amenities</h2>
+    <ul class="feature-list">
+      <li>Oceanfront Balcony with Seating</li>
+      <li>Fully Equipped Kitchen</li>
+      <li>High-Speed Wi-Fi & Smart TV</li>
+      <li>King-Sized Master Bedroom</li>
+      <li>In-Unit Washer & Dryer</li>
+      <li>Private Parking Spot</li>
+    </ul>
+  </section>
 
-          <label for="card">Card Number</label>
-          <input type="text" id="card" maxlength="16" required/>
+  <!-- Booking Calendar -->
+  <section class="booking-calendar container">
+    <h2>Book Your Stay</h2>
+    <div class="inputs">
+      <input readonly id="checkin" placeholder="Check-in" class="input-date"/>
+      <input readonly id="checkout" placeholder="Check-out" class="input-date"/>
+      <button id="bookBtn" class="btn">Book Now</button>
+    </div>
+    <div id="message" class="message"></div>
+    <div id="calendar" class="calendar"></div>
+  </section>
 
-          <label for="exp">Expiry</label>
-          <input type="month" id="exp" required/>
+  <!-- Testimonials -->
+  <section class="testimonials container">
+    <h2>What Our Guests Say</h2>
+    <div class="testimonial-grid">
+      <blockquote>
+        <p>"Absolutely stunning views and spotless condo! We’ll be back next year."</p>
+        <cite>— Sarah &amp; John</cite>
+      </blockquote>
+      <blockquote>
+        <p>"Perfect location and wonderful amenities. A true beachfront paradise!"</p>
+        <cite>— The Martinez Family</cite>
+      </blockquote>
+      <blockquote>
+        <p>"Easy booking, fast responses, and the condo was even better than the photos!"</p>
+        <cite>— Emily R.</cite>
+      </blockquote>
+    </div>
+  </section>
 
-          <label for="cvc">CVC</label>
-          <input type="text" id="cvc" maxlength="4" required/>
-
-          <button type="submit" class="btn">Pay</button>
-          <button type="button" id="cancelBtn" class="btn">Cancel</button>
-        </form>
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-about">
+        <h3>About Us</h3>
+        <p>Beachfront Condo A403: your home away from home on the Gulf Coast. Managed with care to ensure a memorable stay.</p>
+      </div>
+      <div class="footer-contact">
+        <h3>Contact</h3>
+        <p>Email: info@beachfronta403.com<br/>Phone: (555) 123-4567</p>
+      </div>
+      <div class="footer-social">
+        <h3>Follow Us</h3>
+        <ul>
+          <li><a href="#">Instagram</a></li>
+          <li><a href="#">Facebook</a></li>
+          <li><a href="#">Twitter</a></li>
+        </ul>
       </div>
     </div>
-  </div>
+    <div class="container">
+      <p class="footer-small">&copy; 2025 Beachfront Condo A403. All rights reserved.</p>
+    </div>
+  </footer>
 
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
-    const DateTime = luxon.DateTime;
-    const bc = new BroadcastChannel('calendar-sync');
+    // Carousel functionality
+    const slides = document.querySelector('.carousel-slides');
+    let index = 0;
+    document.querySelector('.carousel-next').addEventListener('click', () => {
+      index = (index + 1) % slides.children.length;
+      slides.style.transform = `translateX(-${index * 100}%)`;
+    });
+    document.querySelector('.carousel-prev').addEventListener('click', () => {
+      index = (index - 1 + slides.children.length) % slides.children.length;
+      slides.style.transform = `translateX(-${index * 100}%)`;
+    });
 
+    // Booking calendar code (unchanged initBookingCalendar)
+    const bc = new BroadcastChannel('calendar-sync');
     bc.onmessage = async e => {
-      if (e.data.type === 'prices-updated') {
-        await initBookingCalendar();
-      }
+      if (e.data.type === 'prices-updated') await initBookingCalendar();
     };
 
     const API_KEY = 'supersecretkey';
     let bookings = [], prices = {}, calendar;
+    const DateTime = luxon.DateTime;
 
     async function initBookingCalendar() {
-      // Fetch latest data
       [bookings, prices] = await Promise.all([
         fetch('/api/bookings').then(r => r.json()),
         fetch('/api/prices').then(r => r.json())
       ]);
-
-      // Clean up previous calendar
-      if (calendar) {
-        calendar.destroy();
-        document.getElementById('calendar').innerHTML = '';
-      }
-
-      // Build blocked date set
+      if (calendar) { calendar.destroy(); document.getElementById('calendar').innerHTML = ''; }
       const blocked = new Set();
-      bookings.forEach(b => {
-        let d = new Date(b.start), end = new Date(b.end);
-        while (d <= end) {
-          blocked.add(DateTime.fromJSDate(d).toISODate());
-          d.setDate(d.getDate() + 1);
-        }
-      });
-
-      // Initialize FullCalendar
+      bookings.forEach(b => { let d=new Date(b.start), end=new Date(b.end); while(d<=end){ blocked.add(DateTime.fromJSDate(d).toISODate()); d.setDate(d.getDate()+1);} });
       calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-        initialView: 'dayGridMonth',
-        selectable: true,
-        selectAllow: sel => {
-          let d = new Date(sel.start), e = new Date(sel.end);
-          while (d < e) {
-            if (blocked.has(DateTime.fromJSDate(d).toISODate())) return false;
-            d.setDate(d.getDate() + 1);
-          }
-          return true;
-        },
-        select: info => {
-          const inEl  = document.getElementById('checkin');
-          const outEl = document.getElementById('checkout');
-          inEl.value  = DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
-          const last = new Date(info.end);
-          last.setDate(last.getDate() - 1);
-          outEl.value = DateTime.fromJSDate(last).toFormat('yyyy-LL-dd');
-        },
-        dayCellDidMount: info => {
-          const ds = DateTime.fromJSDate(info.date).toISODate();
-          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
-          if (prices[ds] != null) {
-            const badge = document.createElement('div');
-            badge.className   = 'day-price';
-            badge.textContent = '$' + prices[ds];
-            info.el.style.position = 'relative';
-            info.el.appendChild(badge);
-          }
-        }
+        initialView: 'dayGridMonth', selectable:true,
+        selectAllow: sel => { let d=new Date(sel.start), e=new Date(sel.end); while(d<e){ if(blocked.has(DateTime.fromJSDate(d).toISODate())) return false; d.setDate(d.getDate()+1);} return true; },
+        select: info => { const inEl=document.getElementById('checkin'), outEl=document.getElementById('checkout'); inEl.value=DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd'); let last=new Date(info.end); last.setDate(last.getDate()-1); outEl.value=DateTime.fromJSDate(last).toFormat('yyyy-LL-dd'); },
+        dayCellDidMount: info => { const ds=DateTime.fromJSDate(info.date).toISODate(); if(blocked.has(ds)) info.el.classList.add('fc-day-disabled'); if(prices[ds]!=null){const badge=document.createElement('div'); badge.className='day-price'; badge.textContent='$'+prices[ds]; info.el.style.position='relative'; info.el.appendChild(badge);} }
       });
-
       calendar.render();
-
-      // Responsive view
-      function updateView() {
-        calendar.changeView(window.innerWidth < 600 ? 'listMonth' : 'dayGridMonth');
-      }
-      window.removeEventListener('resize', updateView);
-      window.addEventListener('resize', updateView);
+      function updateView(){ calendar.changeView(window.innerWidth<600?'listMonth':'dayGridMonth'); }
+      window.removeEventListener('resize',updateView);
+      window.addEventListener('resize',updateView);
       updateView();
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
       await initBookingCalendar();
-
-      // Booking modal logic remains unchanged
-      const inEl  = document.getElementById('checkin');
-      const outEl = document.getElementById('checkout');
-      const btn   = document.getElementById('bookBtn');
-      const msg   = document.getElementById('message');
-      const modal = document.getElementById('bookingModal');
-      const form  = document.getElementById('bookingForm');
-      const cancel= document.getElementById('cancelBtn');
-
-      function showMessage(txt, type='error') {
-        msg.textContent = txt;
-        msg.className   = type;
-        setTimeout(() => msg.textContent = '', 5000);
-      }
-
-      btn.addEventListener('click', () => {
-        if (!inEl.value || !outEl.value) return showMessage('Select dates first');
-        modal.style.display = 'flex';
-      });
-      cancel.addEventListener('click', () => modal.style.display = 'none');
-
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-        const data = {
-          name:  form.name.value.trim(),
-          email: form.email.value.trim(),
-          start: inEl.value,
-          end:   outEl.value,
-          payment: {
-            card: form.card.value,
-            exp:  form.exp.value,
-            cvc:  form.cvc.value
-          }
-        };
-        const res = await fetch('/api/bookings', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json', 'X-API-KEY': API_KEY },
-          body: JSON.stringify(data)
-        });
-        if (res.status === 409) showMessage('Dates already booked');
-        else if (!res.ok) showMessage('Booking failed');
-        else {
-          showMessage('Booked!','success');
-          setTimeout(async () => {
-            modal.style.display = 'none';
-            await initBookingCalendar();
-          }, 1000);
-        }
-      });
+      const inEl=document.getElementById('checkin'), outEl=document.getElementById('checkout'), btn=document.getElementById('bookBtn'), msg=document.getElementById('message'), modal=document.getElementById('bookingModal'), form=document.getElementById('bookingForm'), cancel=document.getElementById('cancelBtn');
+      const showMessage=(txt,type='error')=>{ msg.textContent=txt; msg.className=type; setTimeout(()=>msg.textContent='',5000); };
+      btn.addEventListener('click',()=>{ if(!inEl.value||!outEl.value) return showMessage('Select dates first'); modal.style.display='flex'; });
+      cancel.addEventListener('click',()=> modal.style.display='none');
+      form.addEventListener('submit',async e=>{ e.preventDefault(); const data={ name:form.name.value.trim(), email:form.email.value.trim(), start:inEl.value, end:outEl.value, payment:{card:form.card.value, exp:form.exp.value, cvc:form.cvc.value} }; const res=await fetch('/api/bookings',{method:'POST',headers:{'Content-Type':'application/json','X-API-KEY':API_KEY},body:JSON.stringify(data)}); if(res.status===409) showMessage('Dates already booked'); else if(!res.ok) showMessage('Booking failed'); else{ showMessage('Booked!','success'); setTimeout(async ()=>{ modal.style.display='none'; await initBookingCalendar(); },1000);} });
     });
   </script>
 </body>
