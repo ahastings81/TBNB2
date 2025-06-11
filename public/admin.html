@@ -9,7 +9,14 @@
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
 
-  
+  <style>
+    #modeToggle       { position: fixed; top: 1rem; left: 1rem; z-index: 10001; }
+    #logoutForm       { position: fixed; top: 1rem; right: 1rem; z-index: 10001; }
+    #adminPanels,
+    #userCalendar     { max-width: 800px; margin: 4rem auto 2rem; }
+    .modal-backdrop   { z-index: 9998; }
+    .modal            { z-index: 10000; }
+  </style>
 </head>
 <body>
   <button id="modeToggle">Switch to User View</button>
@@ -27,7 +34,7 @@
     <button id="uploadBtn">Upload</button>
     <div id="uploadMsg"></div>
 
-    <!-- Price‐edit modal -->
+    <!-- Price‑edit modal -->
     <div id="priceModal" class="modal-backdrop" style="display:none;">
       <div class="modal">
         <h3>Set Price for <span id="priceDate"></span></h3>
@@ -53,10 +60,8 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script>
-    const API_KEY = 'supersecretkey';
     let adminMode = true;
-
-    const bc = new BroadcastChannel('calendar-sync');  // channel for broadcasting updates
+    const bc = new BroadcastChannel('calendar-sync');
 
     const toggleBtn   = document.getElementById('modeToggle');
     const adminPanels = document.getElementById('adminPanels');
@@ -86,7 +91,10 @@
       userCalDiv.style.display  = adminMode ? 'none'  : 'block';
       toggleBtn.textContent      = adminMode ? 'Switch to User View' : 'Switch to Admin View';
     });
-    adminPanels.style.display = 'block';  // start in admin mode
+    // Start in admin view
+    adminPanels.style.display = 'block';
+    userCalDiv.style.display  = 'none';
+    toggleBtn.textContent     = 'Switch to User View';
 
     // Load data
     (async () => {
@@ -138,6 +146,7 @@
     }
     priceCancel.onclick = () => priceModal.style.display = 'none';
 
+    // Save price and broadcast update
     priceForm.onsubmit = async e => {
       e.preventDefault();
       const date  = priceDate.textContent;
@@ -145,34 +154,13 @@
 
       const res = await fetch('/api/prices', {
         method: 'POST',
-        headers: {
-          'Content-Type':'application/json',
-          'X-API-KEY':    API_KEY
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date, price })
       });
-      if (!res.ok) {
-        return alert('Error saving price');
-      }
-      // update local data
+      if (!res.ok) return alert('Error saving price');
+
       prices[date] = price;
-      // update admin calendar cell
-      const cell = document.querySelector(`.fc-day[data-date="${date}"]`);
-      if (cell) {
-        cell.querySelector('.day-price')?.remove();
-        const d = document.createElement('div');
-        d.className   = 'day-price';
-        d.textContent = '$' + price;
-        cell.style.position = 'relative';
-        cell.appendChild(d);
-      }
-      // broadcast to any open index.html or user views
       bc.postMessage({ type: 'prices-updated' });
-
-      // refresh user calendar
-      userCal.destroy();
-      initUserCalendar();
-
       priceModal.style.display = 'none';
     };
 
@@ -184,7 +172,6 @@
       const res = await fetch('/api/upload', { method:'POST', body: fd });
       const data = await res.json();
       uploadMsg.textContent = data.url;
-      // broadcast in case index.html wants to refresh image gallery
       bc.postMessage({ type: 'images-updated' });
     };
 
@@ -208,10 +195,9 @@
       userCal.render();
     }
 
-    // Listen for broadcasts (also works across tabs on same origin)
+    // Listen for broadcasts
     bc.onmessage = e => {
       if (e.data.type === 'prices-updated') {
-        // re-fetch prices and update both calendars
         fetch('/api/prices').then(r => r.json()).then(newPrices => {
           prices = newPrices;
           adminCal.destroy();
