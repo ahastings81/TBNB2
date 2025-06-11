@@ -85,134 +85,159 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const API_KEY       = 'supersecretkey';
-      const checkinInput  = document.getElementById('checkin');
-      const checkoutInput = document.getElementById('checkout');
-      const bookBtn       = document.getElementById('bookBtn');
-      const msgEl         = document.getElementById('message');
-      const calendarEl    = document.getElementById('calendar');
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+  // ─── BroadcastChannel for live sync with admin dashboard ─────────
+  const bc = new BroadcastChannel('calendar-sync');
+  bc.onmessage = async e => {
+    if (e.data.type === 'prices-updated') {
+      // re-fetch bookings & prices, destroy and re-init calendar
+      [bookings, prices] = await Promise.all([
+        fetch('/api/bookings').then(r => r.json()),
+        fetch('/api/prices').then(r => r.json())
+      ]);
+      calendar.destroy();
+      initBookingCalendar();
+    }
+  };
 
-      const modalBg  = document.getElementById('bookingModal');
-      const form     = document.getElementById('bookingForm');
-      const cancel   = document.getElementById('cancelBtn');
+  // ─── Globals & helper ────────────────────────────────────────────
+  const API_KEY = 'supersecretkey';
+  let bookings = [], prices = [], calendar;
 
-      function showMessage(txt, type='error') {
-        msgEl.textContent = txt;
-        msgEl.className   = type;
-        setTimeout(() => msgEl.textContent = '', 5000);
+  async function initBookingCalendar() {
+    // reuse the same logic you already had to load, destroy & render
+    [bookings, prices] = await Promise.all([
+      fetch('/api/bookings').then(r => r.json()),
+      fetch('/api/prices').then(r => r.json())
+    ]);
+
+    if (calendar) {
+      calendar.destroy();
+      document.getElementById('calendar').innerHTML = '';
+    }
+
+    const blocked = new Set();
+    bookings.forEach(b => {
+      let d = new Date(b.start), end = new Date(b.end);
+      while (d <= end) {
+        blocked.add(d.toISOString().slice(0,10));
+        d.setDate(d.getDate()+1);
       }
-
-      // 1) Load existing bookings & prices
-      let blocked = [], prices = {};
-      try {
-        const [bRes,pRes] = await Promise.all([
-          fetch('/api/bookings'),
-          fetch('/api/prices')
-        ]);
-        const bookingsData = await bRes.json();
-        prices = await pRes.json();
-        bookingsData.forEach(b => {
-          let d = new Date(b.start), e = new Date(b.end);
-          while (d <= e) {
-            blocked.push(d.toISOString().slice(0,10));
-            d.setDate(d.getDate()+1);
-          }
-        });
-      } catch {
-        return showMessage('Failed loading data','error');
-      }
-
-      // 2) Render calendar
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth', selectable: true,
-        selectAllow: sel => {
-          let d = new Date(sel.start), e = new Date(sel.end);
-          while (d < e) {
-            if (blocked.includes(d.toISOString().slice(0,10))) return false;
-            d.setDate(d.getDate()+1);
-          }
-          return true;
-        },
-        select: info => {
-          checkinInput.value  = luxon.DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
-          const ln = new Date(info.end); ln.setDate(ln.getDate()-1);
-          checkoutInput.value = luxon.DateTime.fromJSDate(ln).toFormat('yyyy-LL-dd');
-        },
-        dayCellDidMount: info => {
-          const ds = info.date.toISOString().slice(0,10);
-          if (blocked.includes(ds)) info.el.classList.add('fc-day-disabled');
-          if (prices[ds] != null) {
-            const d = document.createElement('div');
-            d.className   = 'day-price';
-            d.textContent = '$'+prices[ds];
-            info.el.style.position = 'relative';
-            info.el.appendChild(d);
-          }
-        }
-      });
-      calendar.render();
-
-      // 3) Responsive
-      const updateView = () => {
-        calendar.changeView(window.innerWidth<600 ? 'listMonth' : 'dayGridMonth');
-      };
-      window.addEventListener('resize', updateView);
-      updateView();
-
-      // 4) Show modal on Book
-      bookBtn.addEventListener('click', () => {
-        if (!checkinInput.value || !checkoutInput.value) {
-          return showMessage('Select dates first','error');
-        }
-        modalBg.style.display = 'flex';
-      });
-
-      // 5) Cancel modal
-      cancel.addEventListener('click', () => modalBg.style.display = 'none');
-
-      // 6) Form submit
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-        const name  = form.querySelector('#name').value.trim();
-        const email = form.querySelector('#email').value.trim();
-        // Payment fields (stub—do not send raw card data in prod!)
-        const card  = form.querySelector('#card').value;
-        const exp   = form.querySelector('#exp').value;
-        const cvc   = form.querySelector('#cvc').value;
-
-        try {
-          const res = await fetch('/api/bookings', {
-            method: 'POST',
-            headers: {
-              'Content-Type':'application/json',
-              'X-API-KEY':    API_KEY
-            },
-            body: JSON.stringify({
-              name, email,
-              start: checkinInput.value,
-              end:   checkoutInput.value,
-              // payment info stub:
-              payment: { card, exp, cvc }
-            })
-          });
-          if (res.status === 409) {
-            showMessage('Dates already booked','error');
-          } else if (!res.ok) {
-            showMessage('Booking failed','error');
-          } else {
-            showMessage('Booked!','success');
-            setTimeout(() => location.reload(), 1000);
-          }
-        } catch(err) {
-          console.error(err);
-          showMessage('Network error','error');
-        }
-      });
     });
-  </script>
+
+    calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+      initialView: 'dayGridMonth',
+      selectable: true,
+      selectAllow: sel => {
+        let d = new Date(sel.start), e = new Date(sel.end);
+        while (d < e) {
+          if (blocked.has(d.toISOString().slice(0,10))) return false;
+          d.setDate(d.getDate()+1);
+        }
+        return true;
+      },
+      select: info => {
+        const checkinInput  = document.getElementById('checkin');
+        const checkoutInput = document.getElementById('checkout');
+        checkinInput.value  = luxon.DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
+        const ln = new Date(info.end);
+        ln.setDate(ln.getDate() - 1);
+        checkoutInput.value = luxon.DateTime.fromJSDate(ln).toFormat('yyyy-LL-dd');
+      },
+      dayCellDidMount: info => {
+        const ds = info.date.toISOString().split('T')[0];
+        if (blocked.has(ds)) {
+          info.el.classList.add('fc-day-disabled');
+        }
+        if (prices[ds] != null) {
+          const d = document.createElement('div');
+          d.className   = 'day-price';
+          d.textContent = '$' + prices[ds];
+          info.el.style.position = 'relative';
+          info.el.appendChild(d);
+        }
+      }
+    });
+    calendar.render();
+
+    // responsive
+    function updateView() {
+      calendar.changeView(window.innerWidth < 600 ? 'listMonth' : 'dayGridMonth');
+    }
+    window.removeEventListener('resize', updateView);
+    window.addEventListener('resize', updateView);
+    updateView();
+  }
+
+  // ─── Booking flow ────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async () => {
+    await initBookingCalendar();
+
+    const checkinInput  = document.getElementById('checkin');
+    const checkoutInput = document.getElementById('checkout');
+    const bookBtn       = document.getElementById('bookBtn');
+    const msgEl         = document.getElementById('message');
+    const modalBg       = document.getElementById('bookingModal');
+    const form          = document.getElementById('bookingForm');
+    const cancel        = document.getElementById('cancelBtn');
+
+    function showMessage(txt, type='error') {
+      msgEl.textContent = txt;
+      msgEl.className   = type;
+      setTimeout(() => msgEl.textContent = '', 5000);
+    }
+
+    bookBtn.addEventListener('click', () => {
+      if (!checkinInput.value || !checkoutInput.value) {
+        return showMessage('Select dates first','error');
+      }
+      modalBg.style.display = 'flex';
+    });
+
+    cancel.addEventListener('click', () => modalBg.style.display = 'none');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const name  = form.querySelector('#name').value.trim();
+      const email = form.querySelector('#email').value.trim();
+      const card  = form.querySelector('#card').value;
+      const exp   = form.querySelector('#exp').value;
+      const cvc   = form.querySelector('#cvc').value;
+
+      try {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: {
+            'Content-Type':'application/json',
+            'X-API-KEY':    API_KEY
+          },
+          body: JSON.stringify({
+            name, email,
+            start: checkinInput.value,
+            end:   checkoutInput.value,
+            payment: { card, exp, cvc }
+          })
+        });
+        if (res.status === 409) {
+          showMessage('Dates already booked','error');
+        } else if (!res.ok) {
+          showMessage('Booking failed','error');
+        } else {
+          showMessage('Booked!','success');
+          setTimeout(() => {
+            modalBg.style.display = 'none';
+            initBookingCalendar(); // refresh new booking
+          }, 1000);
+        }
+      } catch(err) {
+        console.error(err);
+        showMessage('Network error','error');
+      }
+    });
+  });
+</script>
+
 </body>
 </html>
