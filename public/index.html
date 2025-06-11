@@ -9,6 +9,33 @@
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
   <style>
+    /* Hero Section */
+    .hero {
+      position: relative;
+      text-align: center;
+      overflow: hidden;
+    }
+    .hero-img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .hero-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 1rem 2rem;
+      border-radius: 8px;
+    }
+    .hero-overlay h2,
+    .hero-overlay p {
+      margin: 0.5rem 0;
+    }
+
     /* Ensure each day cell is relative for badge positioning */
     .calendar .fc-daygrid-day {
       position: relative;
