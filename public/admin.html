@@ -16,7 +16,7 @@
       <button type="submit" class="btn">Log Out</button>
     </form>
 
-    <!-- ADMIN MODE -->
+    <!-- Admin Panels -->
     <div id="adminPanels">
       <h2>Price Calendar</h2>
       <div id="adminCalendar"></div>
@@ -27,7 +27,7 @@
       <div id="uploadMsg"></div>
     </div>
 
-    <!-- USER MODE PREVIEW (hidden on load) -->
+    <!-- User Preview -->
     <div id="userCalendar" style="display: none;">
       <h2>Guest Calendar Preview</h2>
       <div id="calendar"></div>
@@ -35,25 +35,16 @@
     </div>
   </div>
 
-  <!-- load Luxon first, then FullCalendar -->
+  <!-- Luxon & FullCalendar -->
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-
   <script>
     const API_KEY = 'supersecretkey';
+    const bc      = new BroadcastChannel('calendar-sync');
     let bookings = [], prices = {}, adminMode = true;
     let adminCal, userCal;
 
-    const bc          = new BroadcastChannel('calendar-sync');
-    const toggleBtn   = document.getElementById('modeToggle');
-    const adminPanels = document.getElementById('adminPanels');
-    const userCalDiv  = document.getElementById('userCalendar');
-    const adminCalEl  = document.getElementById('adminCalendar');
-    const userCalEl   = document.getElementById('calendar');
-    const uploadBtn   = document.getElementById('uploadBtn');
-    const imageFile   = document.getElementById('imageFile');
-    const uploadMsg   = document.getElementById('uploadMsg');
-
+    // Helpers
     function getBlockedSet() {
       const s = new Set();
       bookings.forEach(b => {
@@ -66,89 +57,129 @@
       return s;
     }
 
+    // Initialize Admin Calendar
     function initAdminCalendar() {
       const blocked = getBlockedSet();
       if (adminCal) adminCal.destroy();
-      adminCal = new FullCalendar.Calendar(adminCalEl, {
+
+      adminCal = new FullCalendar.Calendar(document.getElementById('adminCalendar'), {
         initialView: 'dayGridMonth',
+        selectable: true,
         dateClick: info => {
-          const price = prompt(`Set price for ${info.dateStr}`, prices[info.dateStr]||'');
-          if (price != null) {
-            fetch('/api/prices', {
-              method:'POST',
-              headers:{'Content-Type':'application/json','X-API-KEY':API_KEY},
-              body: JSON.stringify({ date: info.dateStr, price })
-            }).then(()=>bc.postMessage({type:'prices-updated'}));
-          }
+          const np = prompt(`Set price for ${info.dateStr}`, prices[info.dateStr]||'');
+          if (np == null) return;
+
+          fetch('/api/prices', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-KEY':     API_KEY
+            },
+            body: JSON.stringify({ date: info.dateStr, price: np })
+          })
+          .then(async res => {
+            // refresh data locally
+            [bookings, prices] = await Promise.all([
+              fetch('/api/bookings').then(r=>r.json()),
+              fetch('/api/prices').then(r=>r.json())
+            ]);
+            // re-render both calendars
+            initAdminCalendar();
+            initUserCalendar();
+            // broadcast to all clients
+            bc.postMessage({ type: 'prices-updated' });
+          })
+          .catch(console.error);
         },
         dayCellDidMount: info => {
           const ds = info.date.toISOString().slice(0,10);
-          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
-          if (prices[ds]!=null) {
+          if (blocked.has(ds)) {
+            info.el.classList.add('fc-day-disabled');
+          }
+          if (prices[ds] != null) {
             const e = document.createElement('div');
             e.className   = 'day-price';
-            e.textContent = '$'+prices[ds];
-            info.el.style.position='relative';
+            e.textContent = '$' + prices[ds];
+            info.el.style.position = 'relative';
             info.el.appendChild(e);
           }
         }
       });
+
       adminCal.render();
     }
 
+    // Initialize User Calendar
     function initUserCalendar() {
       const blocked = getBlockedSet();
       if (userCal) userCal.destroy();
-      userCal = new FullCalendar.Calendar(userCalEl, {
+
+      userCal = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'dayGridMonth',
         dayCellDidMount: info => {
           const ds = info.date.toISOString().slice(0,10);
-          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
-          if (prices[ds]!=null) {
+          if (blocked.has(ds)) {
+            info.el.classList.add('fc-day-disabled');
+          }
+          if (prices[ds] != null) {
             const e = document.createElement('div');
             e.className   = 'day-price';
-            e.textContent = '$'+prices[ds];
-            info.el.style.position='relative';
+            e.textContent = '$' + prices[ds];
+            info.el.style.position = 'relative';
             info.el.appendChild(e);
           }
         }
       });
+
       userCal.render();
     }
 
-    toggleBtn.addEventListener('click', () => {
+    // Toggle between Admin/User views
+    document.getElementById('modeToggle').addEventListener('click', () => {
       adminMode = !adminMode;
-      adminPanels.style.display = adminMode ? 'block' : 'none';
-      userCalDiv.style.display  = adminMode ? 'none'  : 'block';
-      toggleBtn.textContent = adminMode ? 'Switch to User View' : 'Switch to Admin View';
+      document.getElementById('adminPanels').style.display = adminMode ? 'block' : 'none';
+      document.getElementById('userCalendar').style.display = adminMode ? 'none' : 'block';
+      document.getElementById('modeToggle').textContent =
+        adminMode ? 'Switch to User View' : 'Switch to Admin View';
 
-      // re-render whichever calendar is now visible
       if (adminMode) initAdminCalendar();
       else initUserCalendar();
     });
 
-    uploadBtn.addEventListener('click', async () => {
-      if (!imageFile.files[0]) return;
+    // Handle Image Upload
+    document.getElementById('uploadBtn').addEventListener('click', async () => {
+      const file = document.getElementById('imageFile').files[0];
+      if (!file) return;
       const fd = new FormData();
-      fd.append('image', imageFile.files[0]);
-      const res = await fetch('/api/upload', {
+      fd.append('image', file);
+
+      const res  = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'X-API-KEY': API_KEY },
         body: fd
       });
       const data = await res.json();
-      uploadMsg.textContent = data.success ? 'Uploaded!' : `Error: ${data.error}`;
-      if (data.success) bc.postMessage({type:'images-updated'});
+      document.getElementById('uploadMsg').textContent =
+        data.success ? 'Uploaded!' : `Error: ${data.error}`;
+
+      if (data.success) {
+        bc.postMessage({ type: 'images-updated' });
+      }
     });
 
-    bc.onmessage = e => {
-      if (e.data.type==='prices-updated') {
-        fetch('/api/prices')
-          .then(r=>r.json())
-          .then(d=>{ prices = d; initAdminCalendar(); initUserCalendar(); });
+    // Listen for broadcasts
+    bc.onmessage = async e => {
+      if (e.data.type === 'prices-updated' || e.data.type === 'new-booking') {
+        [bookings, prices] = await Promise.all([
+          fetch('/api/bookings').then(r=>r.json()),
+          fetch('/api/prices').then(r=>r.json())
+        ]);
+        initAdminCalendar();
+        initUserCalendar();
       }
     };
 
+    // Initial load
     (async () => {
       [bookings, prices] = await Promise.all([
         fetch('/api/bookings').then(r=>r.json()),
@@ -156,8 +187,8 @@
       ]);
       initAdminCalendar();
       initUserCalendar();
-      adminPanels.style.display = 'block';
-      userCalDiv.style.display  = 'none';
+      document.getElementById('adminPanels').style.display = 'block';
+      document.getElementById('userCalendar').style.display = 'none';
     })();
   </script>
 </body>
