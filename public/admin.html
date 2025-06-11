@@ -14,8 +14,9 @@
     #logoutForm       { position: fixed; top: 1rem; right: 1rem; z-index: 10001; }
     #adminPanels,
     #userCalendar     { max-width: 800px; margin: 4rem auto 2rem; }
-    .modal-backdrop   { z-index: 9998; }
-    .modal            { z-index: 10000; }
+    .modal-backdrop   { z-index: 9998; display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); }
+    .modal            { z-index: 10000; background: #fff; padding: 1rem; border-radius: 4px; }
+    .day-price        { position: absolute; bottom: 2px; right: 2px; font-size: 0.75em; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -35,7 +36,7 @@
     <div id="uploadMsg"></div>
 
     <!-- Price-edit modal -->
-    <div id="priceModal" class="modal-backdrop" style="display:none;">
+    <div id="priceModal" class="modal-backdrop">
       <div class="modal">
         <h3>Set Price for <span id="priceDate"></span></h3>
         <form id="priceForm">
@@ -60,6 +61,7 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script>
+    const DateTime = luxon.DateTime;
     let adminMode = true;
     const bc = new BroadcastChannel('calendar-sync');
 
@@ -79,7 +81,6 @@
 
     const adminCalEl  = document.getElementById('adminCalendar');
     const userCalEl   = document.getElementById('calendar');
-    const messageEl   = document.getElementById('message');
 
     let bookings = [], prices = {};
     let adminCal, userCal;
@@ -96,14 +97,13 @@
     userCalDiv.style.display  = 'none';
     toggleBtn.textContent     = 'Switch to User View';
 
-    // Load data
+    // Fetch bookings and prices, then init calendars
     (async () => {
       [bookings, prices] = await Promise.all([
         fetch('/api/bookings').then(r => r.json()),
         fetch('/api/prices').then(r => r.json())
       ]);
-      initAdminCalendar();
-      initUserCalendar();
+      renderCalendars();
     })();
 
     function getBlockedSet() {
@@ -111,32 +111,54 @@
       bookings.forEach(b => {
         let d = new Date(b.start), e = new Date(b.end);
         while (d <= e) {
-          s.add(d.toISOString().slice(0,10));
+          s.add(DateTime.fromJSDate(d).toISODate());
           d.setDate(d.getDate()+1);
         }
       });
       return s;
     }
 
-    // ADMIN CALENDAR
-    function initAdminCalendar() {
+    function renderCalendars() {
       const blocked = getBlockedSet();
+
+      // Destroy existing
+      if (adminCal) adminCal.destroy();
+      if (userCal)  userCal.destroy();
+
+      // Admin Calendar
       adminCal = new FullCalendar.Calendar(adminCalEl, {
         initialView: 'dayGridMonth',
         dateClick: info => openPriceModal(info.dateStr),
         dayCellDidMount: info => {
-          const ds = info.date.toISOString().slice(0,10);
+          const ds = DateTime.fromJSDate(info.date).toISODate();
           if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
           if (prices[ds] != null) {
-            const d = document.createElement('div');
-            d.className   = 'day-price';
-            d.textContent = '$' + prices[ds];
+            const badge = document.createElement('div');
+            badge.className   = 'day-price';
+            badge.textContent = '$' + prices[ds];
             info.el.style.position = 'relative';
-            info.el.appendChild(d);
+            info.el.append(badge);
           }
         }
       });
       adminCal.render();
+
+      // User Calendar
+      userCal = new FullCalendar.Calendar(userCalEl, {
+        initialView: 'dayGridMonth',
+        dayCellDidMount: info => {
+          const ds = DateTime.fromJSDate(info.date).toISODate();
+          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
+          if (prices[ds] != null) {
+            const badge = document.createElement('div');
+            badge.className   = 'day-price';
+            badge.textContent = '$' + prices[ds];
+            info.el.style.position = 'relative';
+            info.el.append(badge);
+          }
+        }
+      });
+      userCal.render();
     }
 
     function openPriceModal(dateStr) {
@@ -144,9 +166,9 @@
       priceInput.value      = prices[dateStr] ?? '';
       priceModal.style.display = 'flex';
     }
-    priceCancel.onclick = () => priceModal.style.display = 'none';
+    priceCancel.onclick = () => (priceModal.style.display = 'none');
 
-    // Save price, refresh calendars, and broadcast update
+    // Save price and rerender
     priceForm.onsubmit = async e => {
       e.preventDefault();
       const date  = priceDate.textContent;
@@ -159,19 +181,13 @@
       });
       if (!res.ok) return alert('Error saving price');
 
-      // Update local prices and re-render both calendars
       prices[date] = price;
-      adminCal.destroy();
-      initAdminCalendar();
-      userCal.destroy();
-      initUserCalendar();
+      renderCalendars();
       priceModal.style.display = 'none';
-
-      // Notify other tabs
       bc.postMessage({ type: 'prices-updated' });
     };
 
-    // IMAGE UPLOAD
+    // Image upload
     uploadBtn.onclick = async () => {
       if (!imageFile.files[0]) return;
       const fd = new FormData();
@@ -182,36 +198,12 @@
       bc.postMessage({ type: 'images-updated' });
     };
 
-    // USER CALENDAR
-    function initUserCalendar() {
-      const blocked = getBlockedSet();
-      userCal = new FullCalendar.Calendar(userCalEl, {
-        initialView: 'dayGridMonth',
-        dayCellDidMount: info => {
-          const ds = info.date.toISOString().slice(0,10);
-          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
-          if (prices[ds] != null) {
-            const d = document.createElement('div');
-            d.className   = 'day-price';
-            d.textContent = '$' + prices[ds];
-            info.el.style.position = 'relative';
-            info.el.appendChild(d);
-          }
-        }
-      });
-      userCal.render();
-    }
-
-    // Listen for broadcasts
+    // Broadcast listener
     bc.onmessage = e => {
       if (e.data.type === 'prices-updated') {
-        fetch('/api/prices').then(r => r.json()).then(newPrices => {
-          prices = newPrices;
-          adminCal.destroy();
-          initAdminCalendar();
-          userCal.destroy();
-          initUserCalendar();
-        });
+        fetch('/api/prices')
+          .then(r => r.json())
+          .then(p => { prices = p; renderCalendars(); });
       }
     };
   </script>
