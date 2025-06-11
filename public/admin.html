@@ -8,7 +8,6 @@
   <!-- FullCalendar CSS -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
-<<<<<<< HEAD
 </head>
 <body>
   <div class="container">
@@ -37,7 +36,6 @@
   </div>
 
   <!-- Scripts -->
-=======
 
   <style>
     #modeToggle       { position: fixed; top: 1rem; left: 1rem; z-index: 10001; }
@@ -88,11 +86,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
->>>>>>> 4316395e13bb09c2e91d059fab2ab0e01e97b2e0
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
-<<<<<<< HEAD
     const API_KEY      = 'supersecretkey';
     let adminMode      = true;
     let bookings       = [], prices = {};
@@ -183,7 +179,6 @@
             elt.className   = 'day-price';
             info.el.style.position = 'relative';
             info.el.appendChild(elt);
-=======
     const API_KEY = 'supersecretkey';
     let adminMode = true;
 
@@ -339,14 +334,11 @@
             d.textContent = '$' + prices[ds];
             info.el.style.position = 'relative';
             info.el.appendChild(d);
->>>>>>> 4316395e13bb09c2e91d059fab2ab0e01e97b2e0
           }
         }
       });
       userCal.render();
     }
-
-<<<<<<< HEAD
     // ─── Image upload handler ─────────
     uploadBtn.addEventListener('click', async () => {
       if (!imageFile.files.length) return showMessage('Choose an image','error');
@@ -376,7 +368,6 @@
       await loadData();
       initCalendars();
     })();
-=======
     // Listen for broadcasts (also works across tabs on same origin)
     bc.onmessage = e => {
       if (e.data.type === 'prices-updated') {
@@ -390,7 +381,6 @@
         });
       }
     };
->>>>>>> 4316395e13bb09c2e91d059fab2ab0e01e97b2e0
   </script>
 </body>
 </html>
