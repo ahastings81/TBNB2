@@ -8,208 +8,175 @@
   <!-- FullCalendar CSS -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
-  <style>
-    /* Modal overlay */
-    .modal-backdrop {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 0.5rem;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-    }
-    .modal h2 {
-      margin-top: 0;
-    }
-    .modal label {
-      display: block;
-      margin: 0.5rem 0 0.25rem;
-    }
-    .modal input {
-      width: 100%;
-      padding: 0.5rem;
-      margin-bottom: 0.75rem;
-      box-sizing: border-box;
-    }
-    .modal .actions {
-      text-align: right;
-    }
-    .modal .actions button {
-      margin-left: 0.5rem;
-    }
-  </style>
 </head>
 <body>
-  <div class="inputs">
-    <input readonly id="checkin"   placeholder="Check-in"/>
-    <input readonly id="checkout"  placeholder="Check-out"/>
-    <button id="bookBtn">Book</button>
-  </div>
+  <div class="container">
+    <div class="inputs">
+      <input readonly id="checkin" placeholder="Check-in"/>
+      <input readonly id="checkout" placeholder="Check-out"/>
+      <button id="bookBtn" class="btn">Book</button>
+    </div>
 
-  <div id="message"></div>
-  <div id="calendar"></div>
+    <div id="message"></div>
+    <div id="calendar"></div>
 
-  <!-- Modal for user info & payment -->
-  <div class="modal-backdrop" id="bookingModal">
-    <div class="modal">
-      <h2>Complete your booking</h2>
-      <form id="bookingForm">
-        <label for="name">Full Name</label>
-        <input type="text" id="name" required/>
+    <!-- Modal for user info & payment -->
+    <div class="modal-backdrop" id="bookingModal">
+      <div class="modal">
+        <h2>Complete your booking</h2>
+        <form id="bookingForm">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" required/>
 
-        <label for="email">Email</label>
-        <input type="email" id="email" required/>
+          <label for="email">Email</label>
+          <input type="text" id="email" required/>
 
-        <label for="card">Card Number</label>
-        <input type="text" id="card" placeholder="4242 4242 4242 4242" required/>
+          <label for="card">Card Number</label>
+          <input type="text" id="card" maxlength="16" required/>
 
-        <label for="exp">Expiry (MM/YY)</label>
-        <input type="text" id="exp" placeholder="12/34" required/>
+          <label for="exp">Expiry</label>
+          <input type="month" id="exp" required/>
 
-        <label for="cvc">CVC</label>
-        <input type="text" id="cvc" placeholder="123" required/>
+          <label for="cvc">CVC</label>
+          <input type="text" id="cvc" maxlength="4" required/>
 
-        <div class="actions">
-          <button type="button" id="cancelBtn">Cancel</button>
-          <button type="submit">Confirm Booking</button>
-        </div>
-      </form>
+          <button type="submit" class="btn">Pay</button>
+          <button type="button" id="cancelBtn" class="btn">Cancel</button>
+        </form>
+      </div>
     </div>
   </div>
 
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
+    // ─── BroadcastChannel for live sync with admin dashboard ─────────
+    const bc = new BroadcastChannel('calendar-sync');
+    bc.onmessage = async e => {
+      if (e.data.type === 'prices-updated') {
+        // re-fetch bookings & prices, destroy and re-init calendar
+        bookings  = await fetch('/api/bookings').then(r => r.json());
+        prices    = await fetch('/api/prices').then(r => r.json());
+        calendar.destroy();
+        initBookingCalendar();
+      }
+    };
+
+    const API_KEY   = 'supersecretkey';
+    let bookings    = [], prices = {};
+    let calendar;
+
     document.addEventListener('DOMContentLoaded', async () => {
-      const API_KEY       = 'supersecretkey';
-      const checkinInput  = document.getElementById('checkin');
-      const checkoutInput = document.getElementById('checkout');
+      [bookings, prices] = await Promise.all([
+        fetch('/api/bookings').then(r => r.json()),
+        fetch('/api/prices').then(r => r.json())
+      ]);
+
       const bookBtn       = document.getElementById('bookBtn');
+      const bookingModal  = document.getElementById('bookingModal');
+      const cancelBtn     = document.getElementById('cancelBtn');
       const msgEl         = document.getElementById('message');
-      const calendarEl    = document.getElementById('calendar');
+      const form          = document.getElementById('bookingForm');
 
-      const modalBg  = document.getElementById('bookingModal');
-      const form     = document.getElementById('bookingForm');
-      const cancel   = document.getElementById('cancelBtn');
-
-      function showMessage(txt, type='error') {
+      function showMessage(txt, type = 'error') {
         msgEl.textContent = txt;
         msgEl.className   = type;
         setTimeout(() => msgEl.textContent = '', 5000);
       }
 
-      // 1) Load existing bookings & prices
-      let blocked = [], prices = {};
-      try {
-        const [bRes,pRes] = await Promise.all([
-          fetch('/api/bookings'),
-          fetch('/api/prices')
-        ]);
-        const bookingsData = await bRes.json();
-        prices = await pRes.json();
-        bookingsData.forEach(b => {
-          let d = new Date(b.start), e = new Date(b.end);
-          while (d <= e) {
-            blocked.push(d.toISOString().slice(0,10));
-            d.setDate(d.getDate()+1);
+      function initBookingCalendar() {
+        calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+          initialView: 'dayGridMonth',
+          selectable: true,
+          selectOverlap: false,
+          height: 'auto',
+          validRange: info => ({
+            start: new Date().toISOString().slice(0,10)
+          }),
+          selectAllow: dateSelect => {
+            const start = dateSelect.start;
+            const end   = new Date(dateSelect.end);
+            // disallow if any day in range is booked
+            for(let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+              if (bookings.some(b => new Date(b.date).toDateString() === d.toDateString()))
+                return false;
+            }
+            return true;
+          },
+          select: info => {
+            document.getElementById('checkin').value  = luxon.DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
+            const out             = new Date(info.end);
+            out.setDate(out.getDate() - 1);
+            document.getElementById('checkout').value = luxon.DateTime.fromJSDate(out).toFormat('yyyy-LL-dd');
+          },
+          dayCellDidMount: info => {
+            const ds = info.date.toISOString().split('T')[0];
+            if (bookings.some(b => b.date === ds))
+              info.el.classList.add('fc-day-disabled');
+
+            if (prices[ds] != null) {
+              const priceEl      = document.createElement('div');
+              priceEl.className  = 'day-price';
+              priceEl.textContent = '$' + prices[ds];
+              info.el.style.position = 'relative';
+              info.el.appendChild(priceEl);
+            }
           }
         });
-      } catch {
-        return showMessage('Failed loading data','error');
+        calendar.render();
       }
 
-      // 2) Render calendar
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth', selectable: true,
-        selectAllow: sel => {
-          let d = new Date(sel.start), e = new Date(sel.end);
-          while (d < e) {
-            if (blocked.includes(d.toISOString().slice(0,10))) return false;
-            d.setDate(d.getDate()+1);
-          }
-          return true;
-        },
-        select: info => {
-          checkinInput.value  = luxon.DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
-          const ln = new Date(info.end); ln.setDate(ln.getDate()-1);
-          checkoutInput.value = luxon.DateTime.fromJSDate(ln).toFormat('yyyy-LL-dd');
-        },
-        dayCellDidMount: info => {
-          const ds = info.date.toISOString().slice(0,10);
-          if (blocked.includes(ds)) info.el.classList.add('fc-day-disabled');
-          if (prices[ds] != null) {
-            const d = document.createElement('div');
-            d.className   = 'day-price';
-            d.textContent = '$'+prices[ds];
-            info.el.style.position = 'relative';
-            info.el.appendChild(d);
-          }
-        }
-      });
-      calendar.render();
+      initBookingCalendar();
 
-      // 3) Responsive
-      const updateView = () => {
-        calendar.changeView(window.innerWidth<600 ? 'listMonth' : 'dayGridMonth');
-      };
-      window.addEventListener('resize', updateView);
-      updateView();
-
-      // 4) Show modal on Book
+      // Open modal
       bookBtn.addEventListener('click', () => {
-        if (!checkinInput.value || !checkoutInput.value) {
-          return showMessage('Select dates first','error');
+        if (!document.getElementById('checkin').value || !document.getElementById('checkout').value) {
+          return showMessage('Select dates first', 'error');
         }
-        modalBg.style.display = 'flex';
+        bookingModal.classList.add('active');
       });
 
-      // 5) Cancel modal
-      cancel.addEventListener('click', () => modalBg.style.display = 'none');
+      // Cancel
+      cancelBtn.addEventListener('click', () => {
+        bookingModal.classList.remove('active');
+      });
 
-      // 6) Form submit
+      // Submit booking
       form.addEventListener('submit', async e => {
         e.preventDefault();
-        const name  = form.querySelector('#name').value.trim();
-        const email = form.querySelector('#email').value.trim();
-        // Payment fields (stub—do not send raw card data in prod!)
-        const card  = form.querySelector('#card').value;
-        const exp   = form.querySelector('#exp').value;
-        const cvc   = form.querySelector('#cvc').value;
-
+        const payload = {
+          name : form.querySelector('#name').value.trim(),
+          email: form.querySelector('#email').value.trim(),
+          card : form.querySelector('#card').value,
+          exp  : form.querySelector('#exp').value,
+          cvc  : form.querySelector('#cvc').value,
+          checkin : document.getElementById('checkin').value,
+          checkout: document.getElementById('checkout').value
+        };
         try {
           const res = await fetch('/api/bookings', {
             method: 'POST',
             headers: {
-              'Content-Type':'application/json',
+              'Content-Type': 'application/json',
               'X-API-KEY':    API_KEY
             },
-            body: JSON.stringify({
-              name, email,
-              start: checkinInput.value,
-              end:   checkoutInput.value,
-              // payment info stub:
-              payment: { card, exp, cvc }
-            })
+            body: JSON.stringify(payload)
           });
-          if (res.status === 409) {
-            showMessage('Dates already booked','error');
-          } else if (!res.ok) {
-            showMessage('Booking failed','error');
+          const data = await res.json();
+          if (data.success) {
+            showMessage('Booking confirmed!', 'success');
+            bc.postMessage({ type: 'new-booking' });
+            setTimeout(() => {
+              bookingModal.classList.remove('active');
+              initBookingCalendar();
+            }, 1000);
           } else {
-            showMessage('Booked!','success');
-            setTimeout(() => location.reload(), 1000);
+            showMessage(data.error || 'Booking failed', 'error');
           }
-        } catch(err) {
+        } catch (err) {
           console.error(err);
-          showMessage('Network error','error');
+          showMessage('Network error', 'error');
         }
       });
     });
