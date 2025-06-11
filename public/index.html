@@ -13,7 +13,7 @@
     .hero {
       position: relative;
       text-align: center;
-      overflow: hidden;
+      overflow: visible; /* allow overlay even if image fails */
     }
     .hero-img {
       width: 100%;
@@ -30,6 +30,8 @@
       background: rgba(0, 0, 0, 0.35);
       padding: 1rem 2rem;
       border-radius: 8px;
+      max-width: 90%;
+      box-sizing: border-box;
     }
     .hero-overlay h2,
     .hero-overlay p {
@@ -62,7 +64,10 @@
 
   <!-- Hero Image -->
   <section class="hero">
-    <img src="./images/hero.webp" alt="Ocean view from condo" class="hero-img"/>
+    <picture>
+      <source srcset="images/hero.webp" type="image/webp">
+      <img src="images/hero-beachfront.jpg" alt="Ocean view from condo" class="hero-img"/>
+    </picture>
     <div class="hero-overlay">
       <h2>Wake Up to Ocean Breezes</h2>
       <p>Luxury 2 Bed • 2 Bath • Oceanfront</p>
@@ -75,10 +80,22 @@
     <div class="carousel-wrapper">
       <button class="carousel-prev" aria-label="Previous image">&#10094;</button>
       <div class="carousel-slides">
-        <img src="./images/IMG_5632.webp" alt="Living room view"/>
-        <img src="./images/IMG_5643.webp" alt="Master bedroom"/>
-        <img src="./images/IMG_5640.webp" alt="Balcony view"/>
-        <img src=./"images/IMG_5641.webp" alt="Kitchen"/>
+        <picture>
+          <source srcset="images/IMG_5638.webp" type="image/webp">
+          <img src="images/condo1.jpg" alt="Living room view"/>
+        </picture>
+        <picture>
+          <source srcset="images/IMG_5643.webp" type="image/webp">
+          <img src="images/condo2.jpg" alt="Master bedroom"/>
+        </picture>
+        <picture>
+          <source srcset="images/IMG_5632.webp" type="image/webp">
+          <img src="images/condo3.jpg" alt="Balcony view"/>
+        </picture>
+        <picture>
+          <source srcset="images/IMG_5641.webp" type="image/webp">
+          <img src="images/condo4.jpg" alt="Kitchen"/>
+        </picture>
       </div>
       <button class="carousel-next" aria-label="Next image">&#10095;</button>
     </div>
