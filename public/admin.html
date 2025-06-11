@@ -27,7 +27,7 @@
       <div id="uploadMsg"></div>
     </div>
 
-    <!-- User Preview -->
+    <!-- User Preview (start hidden) -->
     <div id="userCalendar" style="display: none;">
       <h2>Guest Calendar Preview</h2>
       <div id="calendar"></div>
@@ -44,7 +44,6 @@
     let bookings = [], prices = {}, adminMode = true;
     let adminCal, userCal;
 
-    // Helpers
     function getBlockedSet() {
       const s = new Set();
       bookings.forEach(b => {
@@ -57,7 +56,7 @@
       return s;
     }
 
-    // Initialize Admin Calendar
+    // Admin calendar
     function initAdminCalendar() {
       const blocked = getBlockedSet();
       if (adminCal) adminCal.destroy();
@@ -78,24 +77,20 @@
             body: JSON.stringify({ date: info.dateStr, price: np })
           })
           .then(async res => {
-            // refresh data locally
+            // re-fetch
             [bookings, prices] = await Promise.all([
               fetch('/api/bookings').then(r=>r.json()),
               fetch('/api/prices').then(r=>r.json())
             ]);
-            // re-render both calendars
             initAdminCalendar();
             initUserCalendar();
-            // broadcast to all clients
             bc.postMessage({ type: 'prices-updated' });
           })
           .catch(console.error);
         },
         dayCellDidMount: info => {
           const ds = info.date.toISOString().slice(0,10);
-          if (blocked.has(ds)) {
-            info.el.classList.add('fc-day-disabled');
-          }
+          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
           if (prices[ds] != null) {
             const e = document.createElement('div');
             e.className   = 'day-price';
@@ -109,7 +104,7 @@
       adminCal.render();
     }
 
-    // Initialize User Calendar
+    // User preview calendar
     function initUserCalendar() {
       const blocked = getBlockedSet();
       if (userCal) userCal.destroy();
@@ -118,9 +113,7 @@
         initialView: 'dayGridMonth',
         dayCellDidMount: info => {
           const ds = info.date.toISOString().slice(0,10);
-          if (blocked.has(ds)) {
-            info.el.classList.add('fc-day-disabled');
-          }
+          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
           if (prices[ds] != null) {
             const e = document.createElement('div');
             e.className   = 'day-price';
@@ -134,11 +127,11 @@
       userCal.render();
     }
 
-    // Toggle between Admin/User views
+    // Toggle handler
     document.getElementById('modeToggle').addEventListener('click', () => {
       adminMode = !adminMode;
       document.getElementById('adminPanels').style.display = adminMode ? 'block' : 'none';
-      document.getElementById('userCalendar').style.display = adminMode ? 'none' : 'block';
+      document.getElementById('userCalendar').style.display = adminMode ? 'none'  : 'block';
       document.getElementById('modeToggle').textContent =
         adminMode ? 'Switch to User View' : 'Switch to Admin View';
 
@@ -146,29 +139,31 @@
       else initUserCalendar();
     });
 
-    // Handle Image Upload
+    // Image upload
     document.getElementById('uploadBtn').addEventListener('click', async () => {
       const file = document.getElementById('imageFile').files[0];
       if (!file) return;
-      const fd = new FormData();
-      fd.append('image', file);
+      const fd = new FormData(); fd.append('image', file);
 
-      const res  = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'X-API-KEY': API_KEY },
-        body: fd
-      });
-      const data = await res.json();
-      document.getElementById('uploadMsg').textContent =
-        data.success ? 'Uploaded!' : `Error: ${data.error}`;
-
-      if (data.success) {
-        bc.postMessage({ type: 'images-updated' });
+      try {
+        const res  = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'X-API-KEY': API_KEY },
+          body: fd
+        });
+        const data = await res.json();
+        document.getElementById('uploadMsg').textContent =
+          data.success ? 'Uploaded!' : `Error: ${data.error}`;
+        if (data.success) bc.postMessage({ type: 'images-updated' });
+      } catch (err) {
+        console.error(err);
+        document.getElementById('uploadMsg').textContent = 'Network error';
       }
     });
 
-    // Listen for broadcasts
+    // Broadcast listener
     bc.onmessage = async e => {
+      console.log('[admin] bc message:', e.data);
       if (e.data.type === 'prices-updated' || e.data.type === 'new-booking') {
         [bookings, prices] = await Promise.all([
           fetch('/api/bookings').then(r=>r.json()),
