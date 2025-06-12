@@ -48,38 +48,34 @@
   </style>
 </head>
 <body>
- <header>
-    <h1>Waterscape Condo A403</h1>
-    <p>Beachfront Rental in Fort Walton Beach, FL</p>
+  <header class="site-header">
+    <div class="container">
+      <h1 class="site-title">Beachfront Condo A403</h1>
+    </div>
   </header>
 
+  <!-- Hero -->
   <section class="hero">
-    <img src="images/hero.WEBP" alt="Beachfront view" />
+    <img src="./images/hero.WEBP" alt="Ocean view from condo" class="hero-img" loading="lazy" />
+    <div class="hero-overlay">
+      <h2>Wake Up to Ocean Breezes</h2>
+      <p>Luxury 2 Bed • 2 Bath • Oceanfront</p>
+    </div>
   </section>
 
-  <section class="details">
-    <h2>About the Property</h2>
-    <p>Placeholder description: 2 Bed, 2.5 Bath condo that sleeps 8, with stunning ocean views, full kitchen, and resort amenities.</p>
-    <ul>
-      <li>✔ Sleeps 8</li>
-      <li>✔ Spectacular Gulf and pier views</li>
-	  <li>✔ Two master suites with king and queen beds</li>
-	  <li>✔ Private bunk room with doors, each bunk equipped with its own TV and DVD player</li>
-	  <li>✔ Fully stocked kitchen with granite countertops and stainless steel appliances</li>
-	  <li>✔ Large balcony accessible from the master bedroom, second bedroom, and living room</li>
-      <li>✔ 55" Smart TV, Roku, Wi-Fi, Games, Puzzles, books, DVDs</li>
-      <li>✔ Amenities include beach chair setup, beach wagon, toddler equipment</li>
-    </ul>
-  </section>
-
-  <section class="gallery">
+  <!-- Gallery -->
+  <section class="photo-carousel container">
     <h2>Gallery</h2>
-    <img src="images/IMG_5632.WEBP" alt="Living Room" />
-    <img src="images/IMG_5640.WEBP" alt="Balcony View" />
-	<img src="images/IMG_5639.WEBP" alt="Great Room" />
-	<img src="images/IMG_5644.WEBP" alt="Bath" />
-	<img src="images/IMG_5641.WEBP" alt="Kitchen" />
-	<img src="images/IMG_5642.WEBP" alt="Kitchen" />
+    <div class="carousel-wrapper">
+      <button class="carousel-prev" aria-label="Previous image">&#10094;</button>
+      <div class="carousel-slides">
+        <img src="./images/IMG_5632.WEBP" alt="Living room view" loading="lazy"/>
+        <img src="./images/IMG_5640.WEBP" alt="Master bedroom" loading="lazy"/>
+        <img src="./images/IMG_5641.WEBP" alt="Balcony view" loading="lazy"/>
+        <img src="./images/IMG_5643.WEBP" alt="Kitchen" loading="lazy"/>
+      </div>
+      <button class="carousel-next" aria-label="Next image">&#10095;</button>
+    </div>
   </section>
 
   <!-- Amenities -->
