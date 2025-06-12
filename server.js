@@ -21,14 +21,22 @@ const SMTP_PASS      = process.env.SMTP_PASS;
 const ADMIN_EMAIL    = process.env.ADMIN_EMAIL;
 
 // Initialize LowDB
-const dbFile  = path.join(__dirname, 'data.json');
-const adapter = new JSONFile(dbFile);
-const db      = new Low(adapter);
+import { join } from 'path';
+import { Low, JSONFile } from 'lowdb';
+import seedData from './seed.json';
+
+const file    = join(__dirname, 'db.json');
+const adapter = new JSONFile(file);
+// Hand your seed in here:
+const db = new Low(adapter, seedData);
+
 (async () => {
   await db.read();
-  db.data ||= { bookings: [], prices: {} };
-  await db.write();
+  // If the file was empty or missing, initialize it:
+  db.data ||= structuredClone(seedData);
+  // ...then continue with your routes...
 })();
+
 
 // Configure mailer
 const transporter = nodemailer.createTransport({
