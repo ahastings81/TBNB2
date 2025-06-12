@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
 
   <!-- FullCalendar CSS -->
@@ -18,21 +17,12 @@
     .modal-backdrop   { z-index: 9998; }
     .modal            { z-index: 10000; }
   </style>
-
-  <!-- FullCalendar CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <button id="modeToggle">Switch to User View</button>
   <form id="logoutForm" action="/logout" method="POST">
     <button type="submit">Log Out</button>
   </form>
-  <div class="container">
-    <button id="modeToggle" class="btn">Switch to User View</button>
-    <form id="logoutForm" action="/logout" method="POST">
-      <button type="submit" class="btn">Log Out</button>
-    </form>
 
   <!-- ADMIN MODE -->
   <div id="adminPanels">
@@ -44,7 +34,7 @@
     <button id="uploadBtn">Upload</button>
     <div id="uploadMsg"></div>
 
-    <!-- Price‐edit modal -->
+    <!-- Price‑edit modal -->
     <div id="priceModal" class="modal-backdrop" style="display:none;">
       <div class="modal">
         <h3>Set Price for <span id="priceDate"></span></h3>
@@ -59,38 +49,19 @@
       </div>
     </div>
   </div>
-    <!-- ADMIN MODE -->
-    <div id="adminPanels">
-      <h2>Price Calendar</h2>
-      <div id="adminCalendar"></div>
-
-      <h2>Upload Gallery Image</h2>
-      <input type="file" id="imageFile" accept="image/*"/>
-      <button id="uploadBtn" class="btn">Upload</button>
-      <div id="uploadMsg"></div>
-    </div>
 
   <!-- USER MODE -->
   <div id="userCalendar">
     <h2>Guest Calendar Preview</h2>
     <div id="calendar"></div>
     <div id="message"></div>
-    <!-- USER MODE PREVIEW -->
-    <div id="userCalendar" style="display: none;">
-      <h2>Guest Calendar Preview</h2>
-      <div id="calendar"></div>
-      <div id="message"></div>
-    </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script>
-    const API_KEY = 'supersecretkey';
     let adminMode = true;
-
-    const bc = new BroadcastChannel('calendar-sync');  // channel for broadcasting updates
+    const bc = new BroadcastChannel('calendar-sync');
 
     const toggleBtn   = document.getElementById('modeToggle');
     const adminPanels = document.getElementById('adminPanels');
@@ -114,44 +85,16 @@
     let adminCal, userCal;
 
     // Toggle admin/user view
-    const API_KEY      = 'supersecretkey';
-    let adminMode      = true;
-    let bookings       = [], prices = {};
-    let adminCal, userCal;
-
-    const bc           = new BroadcastChannel('calendar-sync');
-    const toggleBtn    = document.getElementById('modeToggle');
-    const adminPanels  = document.getElementById('adminPanels');
-    const userCalDiv   = document.getElementById('userCalendar');
-    const uploadBtn    = document.getElementById('uploadBtn');
-    const imageFile    = document.getElementById('imageFile');
-    const uploadMsg    = document.getElementById('uploadMsg');
-    const msgEl        = document.getElementById('message');
-
-    function showMessage(txt, type='error') {
-      uploadMsg.textContent = txt;
-      uploadMsg.className   = type;
-      setTimeout(() => uploadMsg.textContent = '', 5000);
-    }
-
-    bc.onmessage = msg => {
-      if (msg.data.type === 'new-booking') {
-        loadData().then(initCalendars);
-      }
-      if (msg.data.type === 'price-updated') {
-        loadData().then(initCalendars);
-      }
-    };
-
     toggleBtn.addEventListener('click', () => {
-      adminMode         = !adminMode;
+      adminMode = !adminMode;
       adminPanels.style.display = adminMode ? 'block' : 'none';
       userCalDiv.style.display  = adminMode ? 'none'  : 'block';
       toggleBtn.textContent      = adminMode ? 'Switch to User View' : 'Switch to Admin View';
-      userCalDiv.style.display  = adminMode ? 'none'  : 'block';
-      toggleBtn.textContent      = adminMode ? 'Switch to User View' : 'Switch to Admin View';
     });
-    adminPanels.style.display = 'block';  // start in admin mode
+    // Start in admin view
+    adminPanels.style.display = 'block';
+    userCalDiv.style.display  = 'none';
+    toggleBtn.textContent     = 'Switch to User View';
 
     // Load data
     (async () => {
@@ -203,6 +146,7 @@
     }
     priceCancel.onclick = () => priceModal.style.display = 'none';
 
+    // Save price and broadcast update
     priceForm.onsubmit = async e => {
       e.preventDefault();
       const date  = priceDate.textContent;
@@ -210,34 +154,13 @@
 
       const res = await fetch('/api/prices', {
         method: 'POST',
-        headers: {
-          'Content-Type':'application/json',
-          'X-API-KEY':    API_KEY
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date, price })
       });
-      if (!res.ok) {
-        return alert('Error saving price');
-      }
-      // update local data
+      if (!res.ok) return alert('Error saving price');
+
       prices[date] = price;
-      // update admin calendar cell
-      const cell = document.querySelector(`.fc-day[data-date="${date}"]`);
-      if (cell) {
-        cell.querySelector('.day-price')?.remove();
-        const d = document.createElement('div');
-        d.className   = 'day-price';
-        d.textContent = '$' + price;
-        cell.style.position = 'relative';
-        cell.appendChild(d);
-      }
-      // broadcast to any open index.html or user views
       bc.postMessage({ type: 'prices-updated' });
-
-      // refresh user calendar
-      userCal.destroy();
-      initUserCalendar();
-
       priceModal.style.display = 'none';
     };
 
@@ -249,7 +172,6 @@
       const res = await fetch('/api/upload', { method:'POST', body: fd });
       const data = await res.json();
       uploadMsg.textContent = data.url;
-      // broadcast in case index.html wants to refresh image gallery
       bc.postMessage({ type: 'images-updated' });
     };
 
@@ -273,10 +195,9 @@
       userCal.render();
     }
 
-    // Listen for broadcasts (also works across tabs on same origin)
+    // Listen for broadcasts
     bc.onmessage = e => {
       if (e.data.type === 'prices-updated') {
-        // re-fetch prices and update both calendars
         fetch('/api/prices').then(r => r.json()).then(newPrices => {
           prices = newPrices;
           adminCal.destroy();
@@ -286,96 +207,6 @@
         });
       }
     };
-
-    async function loadData() {
-      [bookings, prices] = await Promise.all([
-        fetch('/api/bookings').then(r => r.json()),
-        fetch('/api/prices').then(r => r.json())
-      ]);
-    }
-
-    function initCalendars() {
-      if (adminCal) adminCal.destroy();
-      if (userCal)  userCal.destroy();
-
-      // ─── Admin price picker calendar ─────────
-      adminCal = new FullCalendar.Calendar(document.getElementById('adminCalendar'), {
-        initialView: 'dayGridMonth',
-        selectable: true,
-        height: 'auto',
-        dateClick: info => {
-          const price = prompt(`Set price for ${info.dateStr}`, prices[info.dateStr]||'');
-          if (price != null) {
-            fetch('/api/prices', {
-              method: 'POST',
-              headers:{ 'Content-Type':'application/json','X-API-KEY':API_KEY },
-              body: JSON.stringify({ date: info.dateStr, price })
-            }).then(() => bc.postMessage({ type:'price-updated' }));
-          }
-        },
-        dayCellDidMount: info => {
-          const ds = info.date.toISOString().slice(0,10);
-          if (prices[ds]!=null) {
-            const elt = document.createElement('div');
-            elt.textContent = '$'+prices[ds];
-            elt.className   = 'day-price';
-            info.el.style.position = 'relative';
-            info.el.appendChild(elt);
-          }
-        }
-      });
-      adminCal.render();
-
-      // ─── User preview calendar ─────────
-      userCal = new FullCalendar.Calendar(document.getElementById('calendar'), {
-        initialView: 'dayGridMonth',
-        height: 'auto',
-        dayCellDidMount: info => {
-          const ds = info.date.toISOString().split('T')[0];
-          if (bookings.some(b=>b.date===ds)) {
-            info.el.classList.add('fc-day-disabled');
-          }
-          if (prices[ds]!=null) {
-            const elt = document.createElement('div');
-            elt.textContent = '$'+prices[ds];
-            elt.className   = 'day-price';
-            info.el.style.position = 'relative';
-            info.el.appendChild(elt);
-          }
-        }
-      });
-      userCal.render();
-    }
-
-    // ─── Image upload handler ─────────
-    uploadBtn.addEventListener('click', async () => {
-      if (!imageFile.files.length) return showMessage('Choose an image','error');
-      const fd = new FormData();
-      fd.append('image', imageFile.files[0]);
-      try {
-        const res = await fetch('/api/upload', {
-          method:'POST',
-          headers:{ 'X-API-KEY': API_KEY },
-          body: fd
-        });
-        const data = await res.json();
-        if (data.success) {
-          showMessage('Uploaded!', 'success');
-          bc.postMessage({ type:'new-image' });
-        } else {
-          showMessage(data.error||'Upload failed','error');
-        }
-      } catch(e) {
-        console.error(e);
-        showMessage('Network error','error');
-      }
-    });
-
-    // ─── Initialization ─────────
-    (async () => {
-      await loadData();
-      initCalendars();
-    })();
   </script>
 </body>
 </html>
