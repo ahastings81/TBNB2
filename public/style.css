@@ -133,6 +133,7 @@ button:hover,
 /* ======================
    Modal Styles
    ====================== */
+/* Replace any existing “modal-backdrop” rule with this: */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -140,8 +141,9 @@ button:hover,
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 1000;
 }
+
 .modal-backdrop.active {
   display: flex;
 }
