@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "set \"API_KEY=supersecretkey\"&& node server.js"
-    
+    "postinstall": "npm rebuild bcrypt --build-from-source"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
