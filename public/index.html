@@ -13,7 +13,7 @@
     .hero {
       position: relative;
       text-align: center;
-      overflow: visible; /* allow overlay even if image fails */
+      overflow: visible;
     }
     .hero-img {
       width: 100%;
@@ -33,15 +33,8 @@
       max-width: 90%;
       box-sizing: border-box;
     }
-    .hero-overlay h2,
-    .hero-overlay p {
-      margin: 0.5rem 0;
-    }
-
-    /* Ensure each day cell is relative for badge positioning */
-    .calendar .fc-daygrid-day {
-      position: relative;
-    }
+    /* Calendar cell relative for badges */
+    .calendar .fc-daygrid-day { position: relative; }
     .day-price {
       position: absolute;
       bottom: 4px;
@@ -55,53 +48,37 @@
   </style>
 </head>
 <body>
-  <!-- Site Header -->
   <header class="site-header">
     <div class="container">
       <h1 class="site-title">Beachfront Condo A403</h1>
     </div>
   </header>
 
-  <!-- Hero Image -->
+  <!-- Hero -->
   <section class="hero">
-    <picture>
-      <source srcset="images/hero.webp" type="image/webp">
-      <img src="images/hero-beachfront.jpg" alt="Ocean view from condo" class="hero-img"/>
-    </picture>
+    <img src="./images/hero.WEBP" alt="Ocean view from condo" class="hero-img" loading="lazy" />
     <div class="hero-overlay">
       <h2>Wake Up to Ocean Breezes</h2>
       <p>Luxury 2 Bed • 2 Bath • Oceanfront</p>
     </div>
   </section>
 
-  <!-- Photo Carousel -->
+  <!-- Gallery -->
   <section class="photo-carousel container">
     <h2>Gallery</h2>
     <div class="carousel-wrapper">
       <button class="carousel-prev" aria-label="Previous image">&#10094;</button>
       <div class="carousel-slides">
-        <picture>
-          <source srcset="images/IMG_5638.webp" type="image/webp">
-          <img src="images/condo1.jpg" alt="Living room view"/>
-        </picture>
-        <picture>
-          <source srcset="images/IMG_5643.webp" type="image/webp">
-          <img src="images/condo2.jpg" alt="Master bedroom"/>
-        </picture>
-        <picture>
-          <source srcset="images/IMG_5632.webp" type="image/webp">
-          <img src="images/condo3.jpg" alt="Balcony view"/>
-        </picture>
-        <picture>
-          <source srcset="images/IMG_5641.webp" type="image/webp">
-          <img src="images/condo4.jpg" alt="Kitchen"/>
-        </picture>
+        <img src="./images/IMG_5632.WEBP" alt="Living room view" loading="lazy"/>
+        <img src="./images/IMG_5640.WEBP" alt="Master bedroom" loading="lazy"/>
+        <img src="./images/IMG_5641.WEBP" alt="Balcony view" loading="lazy"/>
+        <img src="./images/IMG_5643.WEBP" alt="Kitchen" loading="lazy"/>
       </div>
       <button class="carousel-next" aria-label="Next image">&#10095;</button>
     </div>
   </section>
 
-  <!-- Features & Amenities -->
+  <!-- Amenities -->
   <section class="features container">
     <h2>Features & Amenities</h2>
     <ul class="feature-list">
@@ -114,7 +91,7 @@
     </ul>
   </section>
 
-  <!-- Booking Calendar -->
+  <!-- Booking -->
   <section class="booking-calendar container">
     <h2>Book Your Stay</h2>
     <div class="inputs">
@@ -145,18 +122,18 @@
     </div>
   </section>
 
-  <!-- Site Footer -->
+  <!-- Footer -->
   <footer class="site-footer">
     <div class="container footer-grid">
-      <div class="footer-about">
+      <div>
         <h3>About Us</h3>
-        <p>Beachfront Condo A403: your home away from home on the Gulf Coast. Managed with care to ensure a memorable stay.</p>
+        <p>Beachfront Condo A403: your home away from home on the Gulf Coast.</p>
       </div>
-      <div class="footer-contact">
+      <div>
         <h3>Contact</h3>
         <p>Email: info@beachfronta403.com<br/>Phone: (555) 123-4567</p>
       </div>
-      <div class="footer-social">
+      <div>
         <h3>Follow Us</h3>
         <ul>
           <li><a href="#">Instagram</a></li>
@@ -175,16 +152,18 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
     // Carousel functionality
-    const slides = document.querySelector('.carousel-slides');
+    const slides = document.querySelector('.carousel-slides'),
+          prev = document.querySelector('.carousel-prev'),
+          next = document.querySelector('.carousel-next');
     let idx = 0;
-    document.querySelector('.carousel-next').addEventListener('click', () => {
+    next.onclick = () => {
       idx = (idx + 1) % slides.children.length;
       slides.style.transform = `translateX(-${idx * 100}%)`;
-    });
-    document.querySelector('.carousel-prev').addEventListener('click', () => {
+    };
+    prev.onclick = () => {
       idx = (idx - 1 + slides.children.length) % slides.children.length;
       slides.style.transform = `translateX(-${idx * 100}%)`;
-    });
+    };
 
     // Booking calendar with precise badge placement
     const DateTime = luxon.DateTime;

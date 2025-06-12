@@ -35,8 +35,8 @@
     <button id="uploadBtn">Upload</button>
     <div id="uploadMsg"></div>
 
-    <!-- Price‑edit modal -->
-    <div id="priceModal" class="modal-backdrop" style="display:none;">
+    <!-- Price-edit modal -->
+    <div id="priceModal" class="modal-backdrop">
       <div class="modal">
         <h3>Set Price for <span id="priceDate"></span></h3>
         <form id="priceForm">
@@ -61,6 +61,7 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script>
+    const DateTime = luxon.DateTime;
     let adminMode = true;
     const bc = new BroadcastChannel('calendar-sync');
 
@@ -173,7 +174,7 @@
     }
     priceCancel.onclick = () => (priceModal.style.display = 'none');
 
-    // Save price and broadcast update
+    // Save price and rerender
     priceForm.onsubmit = async e => {
       e.preventDefault();
       const date  = priceDate.textContent;
@@ -187,7 +188,7 @@
       if (!res.ok) return alert('Error saving price');
 
       prices[date] = price;
-      bc.postMessage({ type: 'prices-updated' });
+      renderCalendars();
       priceModal.style.display = 'none';
       bc.postMessage({ type: 'prices-updated' });
     };
@@ -203,39 +204,14 @@
       bc.postMessage({ type: 'images-updated' });
     };
 
-    // USER CALENDAR
-    function initUserCalendar() {
-      const blocked = getBlockedSet();
-      userCal = new FullCalendar.Calendar(userCalEl, {
-        initialView: 'dayGridMonth',
-        dayCellDidMount: info => {
-          const ds = info.date.toISOString().slice(0,10);
-          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
-          if (prices[ds] != null) {
-            const d = document.createElement('div');
-            d.className   = 'day-price';
-            d.textContent = '$' + prices[ds];
-            info.el.style.position = 'relative';
-            info.el.appendChild(d);
-          }
-        }
-      });
-      userCal.render();
-    }
-
-    // Listen for broadcasts
+    // Broadcast listener
     bc.onmessage = e => {
       if (e.data.type === 'prices-updated') {
-        fetch('/api/prices').then(r => r.json()).then(newPrices => {
-          prices = newPrices;
-          adminCal.destroy();
-          initAdminCalendar();
-          userCal.destroy();
-          initUserCalendar();
-        });
+        fetch('/api/prices')
+          .then(r => r.json())
+          .then(p => { prices = p; renderCalendars(); });
       }
     };
   </script>
 </body>
 </html>
-
