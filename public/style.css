@@ -1,32 +1,28 @@
 /* ======================
-   Beach Condo Theme
+   Variables & Reset
    ====================== */
 :root {
-  /* Soft sand and sea tones */
-  --sand:        #f7e8d0;
-  --seafoam:     #a2d5c6;
-  --ocean:       #3282b8;
-  --sunset:      #f67e7d;
-  --sky:         #caf0f8;
-  --wood:        #e9c46a;
-  --fg:          #264653;
-  --radius:      0.5rem;
-  --transition:  0.3s;
-  --max-width:   1200px;
-  --header-height: 4rem;
+  --primary:   #2a9d8f;
+  --secondary: #264653;
+  --accent:    #e9c46a;
+  --bg:        #f0f4f8;
+  --fg:        #333;
+  --radius:    0.5rem;
+  --transition: 0.3s;
+  --max-width: 1200px;
 }
 
-/* ======================
-   Reset & Base Styles
-   ====================== */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
+
 body {
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-  background: var(--sand) url('images/waves-light.png') top center repeat-x;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
   color: var(--fg);
   line-height: 1.6;
 }
@@ -37,7 +33,7 @@ body {
 .container {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 2rem;
 }
 
 /* ======================
@@ -52,118 +48,130 @@ body {
 .inputs input {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid var(--ocean);
+  border: 1px solid #ccc;
   border-radius: var(--radius);
   transition: border-color var(--transition);
-  background: white;
 }
 .inputs input:focus {
-  border-color: var(--seafoam);
+  border-color: var(--primary);
   outline: none;
 }
 
 button,
 .btn {
-  background: var(--seafoam);
-  color: var(--fg);
+  background: var(--primary);
+  color: #fff;
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: var(--radius);
   cursor: pointer;
   transition: background var(--transition), transform var(--transition);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 button:hover,
 .btn:hover {
-  background: var(--ocean);
-  color: white;
+  background: var(--accent);
   transform: translateY(-2px);
+}
+
+/* ======================
+   Login Form
+   ====================== */
+.login-container {
+  background: #fff;
+  padding: 2rem;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.login-container h1 {
+  margin-bottom: 1rem;
+  color: var(--secondary);
+}
+.login-container label {
+  display: block;
+  margin: 0.5rem 0 0.25rem;
+}
+.login-container input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+  transition: border-color var(--transition);
+}
+.login-container input:focus {
+  border-color: var(--primary);
+  outline: none;
 }
 
 /* ======================
    Messages
    ====================== */
-.message {
+#message,
+#uploadMsg {
+  text-align: center;
   margin-bottom: 1rem;
-  padding: 0.75rem;
+}
+.error {
+  color: #c00;
+}
+.success {
+  color: #060;
+}
+
+/* ======================
+   Calendar Container
+   ====================== */
+#calendar {
+  background: #fff;
   border-radius: var(--radius);
-}
-.message.error {
-  background: rgba(246, 126, 125, 0.1);
-  color: var(--sunset);
-}
-.message.success {
-  background: rgba(162, 213, 198, 0.1);
-  color: var(--seafoam);
-}
-
-/* ======================
-   FullCalendar Styling
-   ====================== */
-.fc {
-  --fc-bg-event-opacity: 0.4;
-}
-.fc .fc-daygrid-event {
-  background: var(--ocean);
-  color: white;
-  border: none;
-}
-.fc .fc-theme-standard .fc-scrollgrid {
-  border: 1px solid var(--ocean);
-}
-
-/* ======================
-   Disabled Days
-   ====================== */
-.fc-day-disabled {
-  background: #f0f0f0 !important;
-  cursor: not-allowed;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  max-width: 800px;
+  margin: 0 auto 2rem;
+  padding: 1rem;
 }
 
 /* ======================
    Modal Styles
    ====================== */
+/* Replace any existing “modal-backdrop” rule with this: */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(38, 70, 83, 0.75);
+  background: rgba(0,0,0,0.5);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
+
+.modal-backdrop.active {
+  display: flex;
+}
 .modal {
-  background: var(--sand);
+  background: #fff;
   padding: 2rem;
   border-radius: var(--radius);
-  max-width: 400px;
+  max-width: 500px;
   width: 90%;
-  box-sizing: border-box;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  position: relative;
 }
 .modal h2 {
   margin-top: 0;
-  font-family: 'Pacifico', cursive;
-  color: var(--ocean);
 }
 .modal label {
   display: block;
   margin: 0.5rem 0 0.25rem;
-  color: var(--fg);
 }
 .modal input {
   width: 100%;
   padding: 0.75rem;
   margin-bottom: 1rem;
-  border: 1px solid var(--ocean);
+  border: 1px solid #ccc;
   border-radius: var(--radius);
+  transition: border-color var(--transition);
 }
-.modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
+.modal button {
+  margin-right: 1rem;
 }
 
 /* ======================
@@ -188,12 +196,9 @@ button:hover,
 }
 
 /* ======================
-   Footer
+   FullCalendar Disabled Day
    ====================== */
-.site-footer {
-  text-align: center;
-  padding: 2rem 0;
-  background: var(--ocean);
-  color: white;
-  font-size: 0.9rem;
+.fc-day-disabled {
+  background: #eee !important;
+  cursor: not-allowed;
 }
