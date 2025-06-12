@@ -4,8 +4,7 @@
   "description": "Condo booking calendar with admin auth and media management",
   "main": "server.js",
   "scripts": {
-    "start": "set \"API_KEY=supersecretkey\"&& node server.js",
-    "postinstall": "npm rebuild bcrypt --build-from-source"
+    "start": "set \"API_KEY=supersecretkey\"&& node server.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
