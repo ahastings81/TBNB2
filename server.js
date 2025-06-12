@@ -1,18 +1,21 @@
+// server.js
+
 const express    = require('express');
 const cors       = require('cors');
 const path       = require('path');
 const session    = require('express-session');
-const bcrypt = require('bcryptjs');
+const bcrypt     = require('bcryptjs');
 const multer     = require('multer');
 const nodemailer = require('nodemailer');
 const { Low }    = require('lowdb');
 const { JSONFile } = require('lowdb/node');
+const seedData  = require('./data.json');    // your seed file
 
 // Environment vars
 const API_KEY        = process.env.API_KEY;
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const ADMIN_USER     = process.env.ADMIN_USER;
-const ADMIN_PASS_HASH = process.env.ADMIN_PASS_HASH; // bcrypt hash
+const ADMIN_PASS_HASH= process.env.ADMIN_PASS_HASH; // bcrypt hash
 const SMTP_HOST      = process.env.SMTP_HOST;
 const SMTP_PORT      = parseInt(process.env.SMTP_PORT, 10);
 const SMTP_SECURE    = process.env.SMTP_SECURE === 'true';
@@ -21,22 +24,15 @@ const SMTP_PASS      = process.env.SMTP_PASS;
 const ADMIN_EMAIL    = process.env.ADMIN_EMAIL;
 
 // Initialize LowDB
-import { join } from 'path';
-import { Low, JSONFile } from 'lowdb';
-import seedData from 'data.json';
-
-const file    = join(__dirname, 'db.json');
-const adapter = new JSONFile(file);
-// Hand your seed in here:
-const db = new Low(adapter, seedData);
+const dbFile = path.join(__dirname, 'db.json');
+const adapter = new JSONFile(dbFile);
+const db      = new Low(adapter, seedData);
 
 (async () => {
   await db.read();
-  // If the file was empty or missing, initialize it:
-  db.data ||= structuredClone(seedData);
-  // ...then continue with your routes...
+  // Initialize with seed if empty/missing
+  db.data ||= JSON.parse(JSON.stringify(seedData));
 })();
-
 
 // Configure mailer
 const transporter = nodemailer.createTransport({
@@ -50,7 +46,7 @@ const transporter = nodemailer.createTransport({
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+  filename:    (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
 });
 const upload = multer({ storage });
 
@@ -83,6 +79,7 @@ function hasOverlap(bookings, start, end) {
 }
 
 // Routes
+
 // 1) Login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -92,6 +89,7 @@ app.post('/login', async (req, res) => {
   }
   res.redirect('/login.html?error=1');
 });
+
 // 2) Logout
 app.post('/logout', (req, res) => {
   req.session.destroy();
@@ -133,7 +131,7 @@ app.post('/api/bookings', requireKey, async (req, res) => {
   const booking = { id: nextId, name, email, start, end };
   db.data.bookings.push(booking);
   await db.write();
-  // email notifications
+  // Email notifications
   transporter.sendMail({
     from: SMTP_USER,
     to: email,
