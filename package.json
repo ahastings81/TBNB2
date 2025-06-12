@@ -16,3 +16,7 @@
     "nodemailer": "^6.9.4"
   }
 }
+// package.json
+"scripts": {
+  "postinstall": "npm rebuild bcrypt --build-from-source"
+}
