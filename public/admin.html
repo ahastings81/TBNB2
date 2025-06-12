@@ -14,8 +14,9 @@
     #logoutForm       { position: fixed; top: 1rem; right: 1rem; z-index: 10001; }
     #adminPanels,
     #userCalendar     { max-width: 800px; margin: 4rem auto 2rem; }
-    .modal-backdrop   { z-index: 9998; }
-    .modal            { z-index: 10000; }
+    .modal-backdrop   { z-index: 9998; display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); }
+    .modal            { z-index: 10000; background: #fff; padding: 1rem; border-radius: 4px; }
+    .day-price        { position: absolute; bottom: 2px; right: 2px; font-size: 0.75em; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -79,7 +80,6 @@
 
     const adminCalEl  = document.getElementById('adminCalendar');
     const userCalEl   = document.getElementById('calendar');
-    const messageEl   = document.getElementById('message');
 
     let bookings = [], prices = {};
     let adminCal, userCal;
@@ -90,20 +90,22 @@
       adminPanels.style.display = adminMode ? 'block' : 'none';
       userCalDiv.style.display  = adminMode ? 'none'  : 'block';
       toggleBtn.textContent      = adminMode ? 'Switch to User View' : 'Switch to Admin View';
+      if (!adminMode && userCal) {
+        userCal.render();
+      }
     });
     // Start in admin view
     adminPanels.style.display = 'block';
     userCalDiv.style.display  = 'none';
     toggleBtn.textContent     = 'Switch to User View';
 
-    // Load data
+    // Fetch bookings and prices, then init calendars
     (async () => {
       [bookings, prices] = await Promise.all([
         fetch('/api/bookings').then(r => r.json()),
         fetch('/api/prices').then(r => r.json())
       ]);
-      initAdminCalendar();
-      initUserCalendar();
+      renderCalendars();
     })();
 
     function getBlockedSet() {
@@ -111,32 +113,57 @@
       bookings.forEach(b => {
         let d = new Date(b.start), e = new Date(b.end);
         while (d <= e) {
-          s.add(d.toISOString().slice(0,10));
+          s.add(DateTime.fromJSDate(d).toISODate());
           d.setDate(d.getDate()+1);
         }
       });
       return s;
     }
 
-    // ADMIN CALENDAR
-    function initAdminCalendar() {
+    function renderCalendars() {
       const blocked = getBlockedSet();
+
+      // Destroy existing
+      if (adminCal) adminCal.destroy();
+      if (userCal)  userCal.destroy();
+
+      // Admin Calendar
       adminCal = new FullCalendar.Calendar(adminCalEl, {
         initialView: 'dayGridMonth',
         dateClick: info => openPriceModal(info.dateStr),
         dayCellDidMount: info => {
-          const ds = info.date.toISOString().slice(0,10);
+          const ds = DateTime.fromJSDate(info.date).toISODate();
           if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
           if (prices[ds] != null) {
-            const d = document.createElement('div');
-            d.className   = 'day-price';
-            d.textContent = '$' + prices[ds];
+            const badge = document.createElement('div');
+            badge.className   = 'day-price';
+            badge.textContent = '$' + prices[ds];
             info.el.style.position = 'relative';
-            info.el.appendChild(d);
+            info.el.appendChild(badge);
           }
         }
       });
       adminCal.render();
+
+      // User Calendar
+      userCal = new FullCalendar.Calendar(userCalEl, {
+        initialView: 'dayGridMonth',
+        dayCellDidMount: info => {
+          const ds = DateTime.fromJSDate(info.date).toISODate();
+          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
+          if (prices[ds] != null) {
+            const badge = document.createElement('div');
+            badge.className   = 'day-price';
+            badge.textContent = '$' + prices[ds];
+            info.el.style.position = 'relative';
+            info.el.appendChild(badge);
+          }
+        }
+      });
+      // Don't render userCal until visible
+      if (!adminMode) {
+        userCal.render();
+      }
     }
 
     function openPriceModal(dateStr) {
@@ -144,7 +171,7 @@
       priceInput.value      = prices[dateStr] ?? '';
       priceModal.style.display = 'flex';
     }
-    priceCancel.onclick = () => priceModal.style.display = 'none';
+    priceCancel.onclick = () => (priceModal.style.display = 'none');
 
     // Save price and broadcast update
     priceForm.onsubmit = async e => {
@@ -162,9 +189,10 @@
       prices[date] = price;
       bc.postMessage({ type: 'prices-updated' });
       priceModal.style.display = 'none';
+      bc.postMessage({ type: 'prices-updated' });
     };
 
-    // IMAGE UPLOAD
+    // Image upload
     uploadBtn.onclick = async () => {
       if (!imageFile.files[0]) return;
       const fd = new FormData();
