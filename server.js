@@ -23,7 +23,7 @@ const ADMIN_EMAIL    = process.env.ADMIN_EMAIL;
 // Initialize LowDB
 import { join } from 'path';
 import { Low, JSONFile } from 'lowdb';
-import seedData from './seed.json';
+import seedData from 'data.json';
 
 const file    = join(__dirname, 'db.json');
 const adapter = new JSONFile(file);
