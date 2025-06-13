@@ -7,7 +7,6 @@ const bcrypt       = require('bcryptjs');
 const multer       = require('multer');
 const nodemailer   = require('nodemailer');
 const { Pool }     = require('pg');
-const seedData     = require('./data.json');    // for initial seeding
 
 // Env vars
 const {
@@ -30,7 +29,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// Initialize DB tables & seed
+// Ensure tables exist
 (async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bookings (
@@ -45,28 +44,10 @@ const pool = new Pool({
       price INTEGER NOT NULL
     );
   `);
-
-  // seed bookings if empty
-  const bCount = (await pool.query('SELECT COUNT(*) FROM bookings')).rows[0].count;
-  if (parseInt(bCount) === 0) {
-    for (const b of seedData.bookings) {
-      await pool.query(
-        'INSERT INTO bookings(name, email, start, end) VALUES($1,$2,$3,$4)',
-        [b.name, b.email, b.start, b.end]
-      );
-    }
-  }
-  // seed prices if empty
-  const pCount = (await pool.query('SELECT COUNT(*) FROM prices')).rows[0].count;
-  if (parseInt(pCount) === 0) {
-    for (const [date, price] of Object.entries(seedData.prices)) {
-      await pool.query(
-        'INSERT INTO prices(date, price) VALUES($1,$2)',
-        [date, price]
-      );
-    }
-  }
-})();
+})().catch(err => {
+  console.error('Error setting up tables:', err);
+  process.exit(1);
+});
 
 // Mailer
 const transporter = nodemailer.createTransport({
@@ -109,8 +90,6 @@ async function hasOverlap(start, end) {
   );
   return rowCount > 0;
 }
-
-// Routes
 
 // 1) Login
 app.post('/login', async (req, res) => {
