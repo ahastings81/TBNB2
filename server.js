@@ -29,18 +29,18 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// Ensure tables exist
+// Ensure tables exist (with renamed columns)
 (async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bookings (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL,
-      start DATE NOT NULL,
-      end DATE NOT NULL
+      id          SERIAL PRIMARY KEY,
+      name        TEXT   NOT NULL,
+      email       TEXT   NOT NULL,
+      start_date  DATE   NOT NULL,
+      end_date    DATE   NOT NULL
     );
     CREATE TABLE IF NOT EXISTS prices (
-      date DATE PRIMARY KEY,
+      date  DATE    PRIMARY KEY,
       price INTEGER NOT NULL
     );
   `);
@@ -52,7 +52,7 @@ const pool = new Pool({
 // Mailer
 const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
-  port: parseInt(SMTP_PORT,10),
+  port: parseInt(SMTP_PORT, 10),
   secure: SMTP_SECURE === 'true',
   auth: { user: SMTP_USER, pass: SMTP_PASS }
 });
@@ -85,7 +85,10 @@ function requireAdmin(req, res, next) {
 // Overlap checker
 async function hasOverlap(start, end) {
   const { rowCount } = await pool.query(
-    'SELECT 1 FROM bookings WHERE NOT (end < $1 OR start > $2) LIMIT 1',
+    `SELECT 1
+       FROM bookings
+      WHERE NOT (end_date < $1 OR start_date > $2)
+      LIMIT 1`,
     [start, end]
   );
   return rowCount > 0;
@@ -112,9 +115,19 @@ app.post('/logout', (req, res) => {
 
 // 3) Public GET bookings & prices
 app.get('/api/bookings', async (req, res) => {
-  const { rows } = await pool.query('SELECT * FROM bookings ORDER BY id');
+  const { rows } = await pool.query(`
+    SELECT
+      id,
+      name,
+      email,
+      start_date AS start,
+      end_date   AS end
+    FROM bookings
+    ORDER BY id
+  `);
   res.json(rows);
 });
+
 app.get('/api/prices', async (req, res) => {
   const { rows } = await pool.query('SELECT date, price FROM prices');
   const obj = {};
@@ -129,7 +142,9 @@ app.post('/api/prices', requireAdmin, async (req, res) => {
   const { date, price } = req.body;
   if (!date || price == null) return res.status(400).json({ error: 'date & price required' });
   await pool.query(
-    'INSERT INTO prices(date, price) VALUES($1,$2) ON CONFLICT(date) DO UPDATE SET price = EXCLUDED.price',
+    `INSERT INTO prices(date, price)
+     VALUES($1, $2)
+     ON CONFLICT(date) DO UPDATE SET price = EXCLUDED.price`,
     [date, price]
   );
   res.sendStatus(204);
@@ -147,7 +162,14 @@ app.post('/api/bookings', requireKey, async (req, res) => {
   if (await hasOverlap(start, end)) return res.status(409).json({ error: 'Already booked' });
 
   const { rows } = await pool.query(
-    'INSERT INTO bookings(name, email, start, end) VALUES($1,$2,$3,$4) RETURNING *',
+    `INSERT INTO bookings(name, email, start_date, end_date)
+     VALUES($1, $2, $3, $4)
+     RETURNING
+       id,
+       name,
+       email,
+       start_date AS start,
+       end_date   AS end`,
     [name, email, start, end]
   );
   const booking = rows[0];
