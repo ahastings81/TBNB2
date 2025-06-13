@@ -51,6 +51,34 @@
       padding: 1rem;
       text-align: center;
     }
+	
+    /* Carousel */
+    .carousel-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+    .carousel-slides {
+      display: flex;
+      transition: transform 0.3s ease;
+    }
+    .carousel-slides picture {
+      min-width: 100%;
+    }
+    .carousel-prev,
+    .carousel-next {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      border: none;
+      font-size: 2rem;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .carousel-prev { left: 1rem; }
+    .carousel-next { right: 1rem; }  
   </style>
 </head>
 <body>
@@ -84,20 +112,41 @@
     </ul>
   </section>
   <!-- Gallery -->
+ 
+  <!-- Photo Carousel -->
   <section class="photo-carousel container">
     <h2>Gallery</h2>
     <div class="carousel-wrapper">
       <button class="carousel-prev" aria-label="Previous image">&#10094;</button>
       <div class="carousel-slides">
-        <img src="./images/IMG_5632.WEBP" alt="Living room view" loading="lazy"/>
-        <img src="./images/IMG_5640.WEBP" alt="Master bedroom" loading="lazy"/>
-        <img src="./images/IMG_5641.WEBP" alt="Balcony view" loading="lazy"/>
-        <img src="./images/IMG_5643.WEBP" alt="Kitchen" loading="lazy"/>
+        <picture>
+          <source srcset="images/IMG_5640.webp" type="image/webp">
+          <img src="./images/IMG_5640.webp" alt="Living room view"/>
+        </picture>
+        <picture>
+          <source srcset="images/IMG_5643.webp" type="image/webp">
+          <img src="./images/IMG_5643.webp" alt="Master bedroom"/>
+        </picture>
+        <picture>
+          <source srcset="images/IMG_5632.webp" type="image/webp">
+          <img src="./images/IMG_5632.webp" alt="Balcony view"/>
+        </picture>
+        <picture>
+          <source srcset="images/IMG_5641.webp" type="image/webp">
+          <img src="./images/IMG_5641.webp" alt="Kitchen"/>
+        </picture>
+        <picture>
+          <source srcset="images/IMG_5647.webp" type="image/webp">
+          <img src="./images/IMG_5647.webp" alt="Bunk bedroom"/>
+        </picture>
+        <picture>
+          <source srcset="images/hero.webp" type="image/webp">
+          <img src="./images/hero.webp" alt="Resort pool view"/>
+        </picture>
       </div>
       <button class="carousel-next" aria-label="Next image">&#10095;</button>
     </div>
   </section>
-
   <!-- Booking -->
   <section class="booking-calendar container">
     <h2>Book Your Stay</h2>
@@ -109,6 +158,40 @@
     <div id="message" class="message"></div>
     <div id="calendar" class="calendar"></div>
   </section>
+	
+  <!-- Booking Confirmation Modal -->
+  <div id="bookingModal" class="modal-backdrop">
+    <div class="modal">
+      <h2>Confirm Your Booking</h2>
+      <form id="bookingForm">
+        <label>
+          Name
+          <input type="text" name="name" required />
+        </label>
+        <label>
+          Email
+          <input type="email" name="email" required />
+        </label>
+        <label>
+          Card Number
+          <input type="text" name="card" required />
+        </label>
+        <label>
+          Expiry
+          <input type="text" name="exp" required />
+        </label>
+        <label>
+          CVC
+          <input type="text" name="cvc" required />
+        </label>
+        <div class="modal-buttons">
+          <button type="submit">Confirm</button>
+          <button type="button" id="cancelBtn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 
   <!-- Testimonials -->
   <section class="testimonials container">
@@ -158,10 +241,10 @@
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
-    // Carousel functionality
+    // Carousel
     const slides = document.querySelector('.carousel-slides'),
-          prev = document.querySelector('.carousel-prev'),
-          next = document.querySelector('.carousel-next');
+          prev   = document.querySelector('.carousel-prev'),
+          next   = document.querySelector('.carousel-next');
     let idx = 0;
     next.onclick = () => {
       idx = (idx + 1) % slides.children.length;
@@ -172,92 +255,38 @@
       slides.style.transform = `translateX(-${idx * 100}%)`;
     };
 
-    // Booking calendar with precise badge placement
-    const DateTime = luxon.DateTime;
-    const bc = new BroadcastChannel('calendar-sync');
-    bc.onmessage = async e => {
-      if (e.data.type === 'prices-updated') await initBookingCalendar();
-    };
+    // Calendar & Booking Logic
+    const API_KEY = '<YOUR_API_KEY>'; // replace or inject via your build
+    const inEl   = document.getElementById('checkin'),
+          outEl  = document.getElementById('checkout'),
+          btn    = document.getElementById('bookBtn'),
+          modal  = document.getElementById('bookingModal'),
+          form   = document.getElementById('bookingForm'),
+          cancel = document.getElementById('cancelBtn'),
+          msgEl  = document.getElementById('message');
 
-    const API_KEY = 'supersecretkey';
-    let bookings = [], prices = {}, calendar;
+    function showMessage(text, type = 'error') {
+      msgEl.textContent = text;
+      msgEl.className = `message ${type}`;
+    }
 
     async function initBookingCalendar() {
-      [bookings, prices] = await Promise.all([
-        fetch('/api/bookings').then(r => r.json()),
-        fetch('/api/prices').then(r => r.json())
-      ]);
-
-      if (calendar) {
-        calendar.destroy();
-        document.getElementById('calendar').innerHTML = '';
-      }
-
-      const blocked = new Set();
-      bookings.forEach(b => {
-        let d = new Date(b.start), end = new Date(b.end);
-        while (d <= end) {
-          blocked.add(DateTime.fromJSDate(d).toISODate());
-          d.setDate(d.getDate() + 1);
-        }
-      });
-
-      calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+      const calendarEl = document.getElementById('calendar');
+      calendarEl.innerHTML = '';
+      const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
-        selectable: true,
-        selectAllow: sel => {
-          let d = new Date(sel.start), e = new Date(sel.end);
-          while (d < e) {
-            if (blocked.has(DateTime.fromJSDate(d).toISODate())) return false;
-            d.setDate(d.getDate() + 1);
-          }
-          return true;
-        },
         select: info => {
-          const inEl = document.getElementById('checkin');
-          const outEl = document.getElementById('checkout');
-          inEl.value = DateTime.fromJSDate(info.start).toFormat('yyyy-LL-dd');
-          const last = new Date(info.end);
-          last.setDate(last.getDate() - 1);
-          outEl.value = DateTime.fromJSDate(last).toFormat('yyyy-LL-dd');
+          inEl.value  = info.startStr;
+          outEl.value = info.endStr;
         },
-        dayCellDidMount: info => {
-          const ds = DateTime.fromJSDate(info.date).toISODate();
-          if (blocked.has(ds)) info.el.classList.add('fc-day-disabled');
-          if (prices[ds] != null) {
-            info.el.appendChild(Object.assign(document.createElement('div'), {
-              className: 'day-price',
-              textContent: '$' + prices[ds]
-            }));
-          }
-        }
+        events: await fetch('/api/bookings').then(r => r.json()),
+        selectable: true
       });
-
       calendar.render();
-
-      function updateView() {
-        calendar.changeView(window.innerWidth < 600 ? 'listMonth' : 'dayGridMonth');
-      }
-      window.removeEventListener('resize', updateView);
-      window.addEventListener('resize', updateView);
-      updateView();
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
       await initBookingCalendar();
-      const inEl = document.getElementById('checkin');
-      const outEl = document.getElementById('checkout');
-      const btn = document.getElementById('bookBtn');
-      const msg = document.getElementById('message');
-      const modal = document.getElementById('bookingModal');
-      const form = document.getElementById('bookingForm');
-      const cancel = document.getElementById('cancelBtn');
-
-      const showMessage = (txt, type = 'error') => {
-        msg.textContent = txt;
-        msg.className = type;
-        setTimeout(() => msg.textContent = '', 5000);
-      };
 
       btn.addEventListener('click', () => {
         if (!inEl.value || !outEl.value) return showMessage('Select dates first');
@@ -269,11 +298,15 @@
       form.addEventListener('submit', async e => {
         e.preventDefault();
         const data = {
-          name: form.name.value.trim(),
+          name:  form.name.value.trim(),
           email: form.email.value.trim(),
           start: inEl.value,
-          end: outEl.value,
-          payment: { card: form.card.value, exp: form.exp.value, cvc: form.cvc.value }
+          end:   outEl.value,
+          payment: {
+            card: form.card.value,
+            exp:  form.exp.value,
+            cvc:  form.cvc.value
+          }
         };
         const res = await fetch('/api/bookings', {
           method: 'POST',
@@ -281,7 +314,7 @@
           body: JSON.stringify(data)
         });
         if (res.status === 409) showMessage('Dates already booked');
-        else if (!res.ok) showMessage('Booking failed');
+        else if (!res.ok)   showMessage('Booking failed');
         else {
           showMessage('Booked!', 'success');
           setTimeout(async () => {
