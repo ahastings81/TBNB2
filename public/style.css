@@ -59,7 +59,7 @@ body {
 
 button,
 .btn {
-  background: var(--primary);
+  background: #e9c46a;
   color: #fff;
   border: none;
   padding: 0.75rem 1.5rem;
