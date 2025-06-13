@@ -255,75 +255,89 @@
       slides.style.transform = `translateX(-${idx * 100}%)`;
     };
 
-    // Calendar & Booking Logic
-    const API_KEY = '<YOUR_API_KEY>'; // replace or inject via your build
-    const inEl   = document.getElementById('checkin'),
-          outEl  = document.getElementById('checkout'),
-          btn    = document.getElementById('bookBtn'),
-          modal  = document.getElementById('bookingModal'),
-          form   = document.getElementById('bookingForm'),
-          cancel = document.getElementById('cancelBtn'),
-          msgEl  = document.getElementById('message');
+ <script>
+// Calendar & Booking Logic
+const API_KEY = '<YOUR_API_KEY>';  // replace or inject
+const inEl   = document.getElementById('checkin'),
+      outEl  = document.getElementById('checkout'),
+      btn    = document.getElementById('bookBtn'),
+      modal  = document.getElementById('bookingModal'),
+      form   = document.getElementById('bookingForm'),
+      cancel = document.getElementById('cancelBtn'),
+      msgEl  = document.getElementById('message');
 
-    function showMessage(text, type = 'error') {
-      msgEl.textContent = text;
-      msgEl.className = `message ${type}`;
+function showMessage(text, type = 'error') {
+  msgEl.textContent = text;
+  msgEl.className = `message ${type}`;
+}
+
+async function initBookingCalendar() {
+  const calendarEl = document.getElementById('calendar');
+  calendarEl.innerHTML = '';
+  let events = [];
+  try {
+    const res = await fetch('/api/bookings');
+    if (res.ok) events = await res.json();
+    else console.warn('Calendar fetch failed:', res.status);
+  } catch (e) {
+    console.warn('Calendar fetch error:', e);
+  }
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    selectable: true,
+    select: info => {
+      inEl.value  = info.startStr;
+      outEl.value = info.endStr;
+    },
+    events
+  });
+  calendar.render();
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await initBookingCalendar();
+
+  btn.addEventListener('click', () => {
+    if (!inEl.value || !outEl.value) {
+      return showMessage('Select dates first');
     }
+    modal.classList.add('active');
+  });
 
-    async function initBookingCalendar() {
-      const calendarEl = document.getElementById('calendar');
-      calendarEl.innerHTML = '';
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        select: info => {
-          inEl.value  = info.startStr;
-          outEl.value = info.endStr;
-        },
-        events: await fetch('/api/bookings').then(r => r.json()),
-        selectable: true
-      });
-      calendar.render();
-    }
+  cancel.addEventListener('click', () => {
+    modal.classList.remove('active');
+  });
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      await initBookingCalendar();
-
-      btn.addEventListener('click', () => {
-        if (!inEl.value || !outEl.value) return showMessage('Select dates first');
-        modal.style.display = 'flex';
-      });
-
-      cancel.addEventListener('click', () => modal.style.display = 'none');
-
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-        const data = {
-          name:  form.name.value.trim(),
-          email: form.email.value.trim(),
-          start: inEl.value,
-          end:   outEl.value,
-          payment: {
-            card: form.card.value,
-            exp:  form.exp.value,
-            cvc:  form.cvc.value
-          }
-        };
-        const res = await fetch('/api/bookings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-API-KEY': API_KEY },
-          body: JSON.stringify(data)
-        });
-        if (res.status === 409) showMessage('Dates already booked');
-        else if (!res.ok)   showMessage('Booking failed');
-        else {
-          showMessage('Booked!', 'success');
-          setTimeout(async () => {
-            modal.style.display = 'none';
-            await initBookingCalendar();
-          }, 1000);
-        }
-      });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const data = {
+      name:  form.name.value.trim(),
+      email: form.email.value.trim(),
+      start: inEl.value,
+      end:   outEl.value,
+      payment: {
+        card: form.card.value,
+        exp:  form.exp.value,
+        cvc:  form.cvc.value
+      }
+    };
+    const res = await fetch('/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-KEY': API_KEY },
+      body: JSON.stringify(data)
     });
-  </script>
+    if (res.status === 409) showMessage('Dates already booked');
+    else if (!res.ok)   showMessage('Booking failed');
+    else {
+      showMessage('Booked!', 'success');
+      setTimeout(async () => {
+        modal.classList.remove('active');
+        await initBookingCalendar();
+      }, 1000);
+    }
+  });
+});
+</script>
+
 </body>
 </html>
