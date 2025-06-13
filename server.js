@@ -1,58 +1,90 @@
 // server.js
+const express      = require('express');
+const cors         = require('cors');
+const path         = require('path');
+const session      = require('express-session');
+const bcrypt       = require('bcryptjs');
+const multer       = require('multer');
+const nodemailer   = require('nodemailer');
+const { Pool }     = require('pg');
+const seedData     = require('./data.json');    // for initial seeding
 
-const express    = require('express');
-const cors       = require('cors');
-const path       = require('path');
-const session    = require('express-session');
-const bcrypt     = require('bcryptjs');
-const multer     = require('multer');
-const nodemailer = require('nodemailer');
-const { Low }    = require('lowdb');
-const { JSONFile } = require('lowdb/node');
-const seedData  = require('./data.json');    // your seed file
+// Env vars
+const {
+  API_KEY,
+  SESSION_SECRET,
+  ADMIN_USER,
+  ADMIN_PASS_HASH,
+  SMTP_HOST,
+  SMTP_PORT,
+  SMTP_SECURE,
+  SMTP_USER,
+  SMTP_PASS,
+  ADMIN_EMAIL,
+  DATABASE_URL
+} = process.env;
 
-// Environment vars
-const API_KEY        = process.env.API_KEY;
-const SESSION_SECRET = process.env.SESSION_SECRET;
-const ADMIN_USER     = process.env.ADMIN_USER;
-const ADMIN_PASS_HASH= process.env.ADMIN_PASS_HASH; // bcrypt hash
-const SMTP_HOST      = process.env.SMTP_HOST;
-const SMTP_PORT      = parseInt(process.env.SMTP_PORT, 10);
-const SMTP_SECURE    = process.env.SMTP_SECURE === 'true';
-const SMTP_USER      = process.env.SMTP_USER;
-const SMTP_PASS      = process.env.SMTP_PASS;
-const ADMIN_EMAIL    = process.env.ADMIN_EMAIL;
+// PostgreSQL pool
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
-// Initialize LowDB
-const dbFile = path.join(__dirname, 'db.json');
-const adapter = new JSONFile(dbFile);
-const db      = new Low(adapter, seedData);
-
+// Initialize DB tables & seed
 (async () => {
-  await db.read();
-  // Initialize with seed if empty/missing
-  db.data ||= JSON.parse(JSON.stringify(seedData));
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      start DATE NOT NULL,
+      end DATE NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS prices (
+      date DATE PRIMARY KEY,
+      price INTEGER NOT NULL
+    );
+  `);
+
+  // seed bookings if empty
+  const bCount = (await pool.query('SELECT COUNT(*) FROM bookings')).rows[0].count;
+  if (parseInt(bCount) === 0) {
+    for (const b of seedData.bookings) {
+      await pool.query(
+        'INSERT INTO bookings(name, email, start, end) VALUES($1,$2,$3,$4)',
+        [b.name, b.email, b.start, b.end]
+      );
+    }
+  }
+  // seed prices if empty
+  const pCount = (await pool.query('SELECT COUNT(*) FROM prices')).rows[0].count;
+  if (parseInt(pCount) === 0) {
+    for (const [date, price] of Object.entries(seedData.prices)) {
+      await pool.query(
+        'INSERT INTO prices(date, price) VALUES($1,$2)',
+        [date, price]
+      );
+    }
+  }
 })();
 
-// Configure mailer
+// Mailer
 const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_SECURE,
+  port: parseInt(SMTP_PORT,10),
+  secure: SMTP_SECURE === 'true',
   auth: { user: SMTP_USER, pass: SMTP_PASS }
 });
 
-// Configure Multer for image uploads
+// File upload
 const uploadDir = path.join(__dirname, 'public', 'uploads');
-const storage = multer.diskStorage({
+const storage   = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename:    (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
 });
 const upload = multer({ storage });
 
 const app = express();
-
-// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -69,13 +101,13 @@ function requireAdmin(req, res, next) {
   res.redirect('/login.html');
 }
 
-// Overlap check
-function hasOverlap(bookings, start, end) {
-  const s = new Date(start), e = new Date(end);
-  return bookings.some(b => {
-    const bs = new Date(b.start), be = new Date(b.end);
-    return !(be < s || bs > e);
-  });
+// Overlap checker
+async function hasOverlap(start, end) {
+  const { rowCount } = await pool.query(
+    'SELECT 1 FROM bookings WHERE NOT (end < $1 OR start > $2) LIMIT 1',
+    [start, end]
+  );
+  return rowCount > 0;
 }
 
 // Routes
@@ -83,7 +115,10 @@ function hasOverlap(bookings, start, end) {
 // 1) Login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  if (username === ADMIN_USER && await bcrypt.compare(password, ADMIN_PASS_HASH)) {
+  if (
+    username === ADMIN_USER &&
+    await bcrypt.compare(password, ADMIN_PASS_HASH)
+  ) {
     req.session.isAdmin = true;
     return res.redirect('/admin.html');
   }
@@ -96,23 +131,28 @@ app.post('/logout', (req, res) => {
   res.redirect('/login.html');
 });
 
-// 3) Public data
+// 3) Public GET bookings & prices
 app.get('/api/bookings', async (req, res) => {
-  await db.read();
-  res.json(db.data.bookings);
+  const { rows } = await pool.query('SELECT * FROM bookings ORDER BY id');
+  res.json(rows);
 });
 app.get('/api/prices', async (req, res) => {
-  await db.read();
-  res.json(db.data.prices);
+  const { rows } = await pool.query('SELECT date, price FROM prices');
+  const obj = {};
+  rows.forEach(r => {
+    obj[r.date.toISOString().slice(0,10)] = r.price;
+  });
+  res.json(obj);
 });
 
-// 4) Admin: update prices
+// 4) Admin: set price
 app.post('/api/prices', requireAdmin, async (req, res) => {
   const { date, price } = req.body;
   if (!date || price == null) return res.status(400).json({ error: 'date & price required' });
-  await db.read();
-  db.data.prices[date] = price;
-  await db.write();
+  await pool.query(
+    'INSERT INTO prices(date, price) VALUES($1,$2) ON CONFLICT(date) DO UPDATE SET price = EXCLUDED.price',
+    [date, price]
+  );
   res.sendStatus(204);
 });
 
@@ -121,17 +161,19 @@ app.post('/api/upload', requireAdmin, upload.single('image'), (req, res) => {
   res.json({ url: `/uploads/${req.file.filename}` });
 });
 
-// 6) Booking (public POST, requires API key)
+// 6) Booking (public)
 app.post('/api/bookings', requireKey, async (req, res) => {
-  const { name, email, start, end, payment } = req.body;
+  const { name, email, start, end } = req.body;
   if (!name || !email || !start || !end) return res.status(400).json({ error: 'name, email, start, end required' });
-  await db.read();
-  if (hasOverlap(db.data.bookings, start, end)) return res.status(409).json({ error: 'Already booked' });
-  const nextId = (db.data.bookings.reduce((m, b) => Math.max(m, b.id), 0) || 0) + 1;
-  const booking = { id: nextId, name, email, start, end };
-  db.data.bookings.push(booking);
-  await db.write();
-  // Email notifications
+  if (await hasOverlap(start, end)) return res.status(409).json({ error: 'Already booked' });
+
+  const { rows } = await pool.query(
+    'INSERT INTO bookings(name, email, start, end) VALUES($1,$2,$3,$4) RETURNING *',
+    [name, email, start, end]
+  );
+  const booking = rows[0];
+
+  // Email confirmations
   transporter.sendMail({
     from: SMTP_USER,
     to: email,
@@ -144,9 +186,10 @@ app.post('/api/bookings', requireKey, async (req, res) => {
     subject: 'New Booking',
     text: `New booking by ${name} (${email}) from ${start} to ${end}.`
   }).catch(console.error);
+
   res.status(201).json(booking);
 });
 
-// Start server
+// Start
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Listening on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
