@@ -1,4 +1,4 @@
-// package.json
+
 {
   "name": "tara-bnb",
   "version": "1.0.0",
@@ -15,10 +15,6 @@
     "express-session": "^1.17.3",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.4",
-<<<<<<< HEAD
-    "pg": "^8.10.0"
-=======
     "pg": "^8.16.0"
->>>>>>> aa86c56 (Switch from LowDB to PostgreSQL)
   }
 }
