@@ -45,6 +45,12 @@
       border-radius: 3px;
       pointer-events: none;
     }
+    .site-header {
+      background-color: #0077cc;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -91,50 +97,17 @@
     </ul>
   </section>
 
-  <!-- Booking Calendar -->
+  <!-- Booking -->
   <section class="booking-calendar container">
     <h2>Book Your Stay</h2>
     <div class="inputs">
-      <input readonly id="checkin"  placeholder="Check-in"  class="input-date"/>
+      <input readonly id="checkin" placeholder="Check-in" class="input-date"/>
       <input readonly id="checkout" placeholder="Check-out" class="input-date"/>
-      <button   id="bookBtn" class="btn">Book Now</button>
+      <button id="bookBtn" class="btn">Book Now</button>
     </div>
     <div id="message" class="message"></div>
     <div id="calendar" class="calendar"></div>
-  </section> :contentReference[oaicite:3]{index=3}
-
-  <!-- Booking Confirmation Modal -->
-  <div id="bookingModal" class="modal-backdrop">
-    <div class="modal">
-      <h2>Confirm Your Booking</h2>
-      <form id="bookingForm">
-        <label>
-          Name
-          <input type="text" name="name" required />
-        </label>
-        <label>
-          Email
-          <input type="email" name="email" required />
-        </label>
-        <label>
-          Card Number
-          <input type="text" name="card" required />
-        </label>
-        <label>
-          Expiry
-          <input type="text" name="exp" required />
-        </label>
-        <label>
-          CVC
-          <input type="text" name="cvc" required />
-        </label>
-        <div class="modal-buttons">
-          <button type="submit">Confirm</button>
-          <button type="button" id="cancelBtn">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  </section>
 
   <!-- Testimonials -->
   <section class="testimonials container">
