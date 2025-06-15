@@ -25,6 +25,8 @@
     .carousel-slides picture { min-width: 100%; margin: 0 auto; }
     .carousel-prev, .carousel-next { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: #fff; border: none; font-size: 2rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 4px; }
     .carousel-prev { left: 1rem; } .carousel-next { right: 1rem; }
+       /* Enable swipe-drag selection on mobile */
+    #calendar { touch-action: none; }
   </style>
 </head>
 <body>
@@ -77,11 +79,11 @@
     </div>
   </section>
 
-  <!-- Booking Calendar -->
+   <!-- Booking Calendar Section -->
   <section class="booking-calendar container">
     <h2>Book Your Stay</h2>
     <div class="inputs">
-      <input readonly id="checkin" placeholder="Check-in" class="input-date"/>
+      <input readonly id="checkin"  placeholder="Check-in"  class="input-date"/>
       <input readonly id="checkout" placeholder="Check-out" class="input-date"/>
       <button id="bookBtn" class="btn">Book Now</button>
     </div>
@@ -94,8 +96,8 @@
     <div class="modal">
       <h2>Confirm Your Booking</h2>
       <form id="bookingForm">
-        <label>Name<input type="text" name="name" required/></label>
-        <label>Email<input type="email" name="email" required/></label>
+        <label>Name <input type="text" name="name" required/></label>
+        <label>Email <input type="email" name="email" required/></label>
         <div class="modal-buttons">
           <button type="submit">Confirm</button>
           <button type="button" id="cancelBtn">Cancel</button>
@@ -136,60 +138,151 @@
     next.onclick = () => { idx = (idx + 1) % slides.children.length; slides.style.transform = `translateX(-${idx * 100}%)`; };
     prev.onclick = () => { idx = (idx - 1 + slides.children.length) % slides.children.length; slides.style.transform = `translateX(-${idx * 100}%)`; };
   </script>
-  <script>
-    const API_KEY = 'supersecretkey';
-    const bc      = new BroadcastChannel('calendar-sync');
-    const inEl    = document.getElementById('checkin');
-    const outEl   = document.getElementById('checkout');
-    const btn     = document.getElementById('bookBtn');
-    const modal   = document.getElementById('bookingModal');
-    const form    = document.getElementById('bookingForm');
-    const cancel  = document.getElementById('cancelBtn');
-    const msgEl   = document.getElementById('message');
-    const calendarEl = document.getElementById('calendar');
-
-    let calendar, bookings = [], prices = {};
-
-    function showMessage(text, type = 'error') {
-      msgEl.textContent = text;
-      msgEl.className   = `message ${type}`;
-    }
-
-    async function fetchData() {
-      [bookings, prices] = await Promise.all([
-        fetch('/api/bookings').then(r => r.ok    ? r.json() : []),
-        fetch('/api/prices' ).then(r => r.ok    ? r.json() : {})
-      ]);
-    }
-
-    async function initCalendar() {
-      calendarEl.innerHTML = '';
-      const events = bookings.map(b => ({ id: b.id, title: b.name, start: b.start, end: b.end, allDay: true }));
-      calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth', selectable: true,
-        select: info => { inEl.value = info.startStr; outEl.value = info.endStr; },
-        dayCellDidMount: info => {
-          const ds = info.date.toISOString().slice(0,10);
-          if (prices[ds] != null) {
-            const badge = document.createElement('div'); badge.className = 'day-price'; badge.textContent = '$'+prices[ds]; info.el.style.position='relative'; info.el.appendChild(badge);
-          }
-        },
-        events
-      });
-      calendar.render();
-    }
-
+ <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      await fetchData(); await initCalendar();
-      bc.onmessage = async e => { if (e.data.type==='prices-updated') { await fetchData(); calendar.destroy(); await initCalendar(); }};
-      btn.addEventListener('click', ()=>{ if(!inEl.value||!outEl.value) return showMessage('Select dates first'); modal.classList.add('active'); });
-      cancel.addEventListener('click',()=>modal.classList.remove('active'));
-      form.addEventListener('submit',async e=>{
-        e.preventDefault(); const data={name:form.name.value.trim(),email:form.email.value.trim(),start:inEl.value,end:outEl.value};
-        const res=await fetch('/api/bookings',{method:'POST',headers:{'Content-Type':'application/json','X-API-KEY':API_KEY},body:JSON.stringify(data)});
-        if(res.status===409) showMessage('Dates already booked');
-        else if(!res.ok) showMessage('Booking failed');
-        else{ showMessage('Booked!','success'); setTimeout(async()=>{ modal.classList.remove('active'); await fetchData(); calendar.destroy(); await initCalendar(); },1000); }
+      const API_KEY    = 'supersecretkey';
+      const bc         = new BroadcastChannel('calendar-sync');
+      const inEl       = document.getElementById('checkin');
+      const outEl      = document.getElementById('checkout');
+      const btn        = document.getElementById('bookBtn');
+      const modal      = document.getElementById('bookingModal');
+      const form       = document.getElementById('bookingForm');
+      const cancel     = document.getElementById('cancelBtn');
+      const msgEl      = document.getElementById('message');
+      const calendarEl = document.getElementById('calendar');
+
+      let calendar, bookings = [], prices = {};
+      let pendingStart = null;
+
+      function showMessage(text, type = 'error') {
+        msgEl.textContent = text;
+        msgEl.className   = `message ${type}`;
+      }
+
+      async function fetchData() {
+        [bookings, prices] = await Promise.all([
+          fetch('/api/bookings').then(r => r.ok ? r.json() : []),
+          fetch('/api/prices'  ).then(r => r.ok ? r.json() : {})
+        ]);
+      }
+
+      async function initCalendar() {
+        calendarEl.innerHTML = '';
+        const events = bookings.map(b => ({
+          id:    b.id,
+          title: 'Reserved',            // show “Reserved” on booked dates
+          start: b.start,
+          end:   b.end,
+          allDay: true
+        }));
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth',
+          selectable:  true,
+          longPressDelay:      0,
+          selectLongPressDelay: 0,
+          events,
+
+          // drag/swipe selection
+          select: info => {
+            inEl.value = info.startStr;
+            let endDate = new Date(info.end);
+            endDate.setDate(endDate.getDate() - 1);
+            outEl.value = endDate.toISOString().slice(0,10);
+            pendingStart = null;
+          },
+
+          // single-tap selection
+          dateClick: info => {
+            if (pendingStart === null) {
+              // first tap = one-day range
+              pendingStart = info.date;
+              let endPlusOne = new Date(info.date);
+              endPlusOne.setDate(endPlusOne.getDate() + 1);
+              calendar.select(info.date, endPlusOne);
+              inEl.value  = info.dateStr;
+              outEl.value = info.dateStr;
+            } else {
+              // second tap = adjust end date of that range
+              let start = pendingStart < info.date ? pendingStart : info.date;
+              let end   = pendingStart < info.date ? info.date      : pendingStart;
+              let endPlusOne = new Date(end);
+              endPlusOne.setDate(endPlusOne.getDate() + 1);
+              calendar.select(start, endPlusOne);
+              inEl.value  = start.toISOString().slice(0,10);
+              outEl.value = end.toISOString().slice(0,10);
+              pendingStart = null;
+            }
+          },
+
+          // price badges
+          dayCellDidMount: info => {
+            const ds = info.date.toISOString().slice(0,10);
+            if (prices[ds] != null) {
+              const badge = document.createElement('div');
+              badge.className   = 'day-price';
+              badge.textContent = '$'+prices[ds];
+              info.el.style.position = 'relative';
+              info.el.appendChild(badge);
+            }
+          }
+        });
+
+        calendar.render();
+      }
+
+      // initial load
+      await fetchData();
+      await initCalendar();
+
+      // listen for price updates (from admin)
+      bc.onmessage = async e => {
+        if (e.data.type === 'prices-updated') {
+          await fetchData();
+          calendar.destroy();
+          await initCalendar();
+        }
+      };
+
+      // Book Now button opens modal only
+      btn.addEventListener('click', () => {
+        if (!inEl.value || !outEl.value) {
+          return showMessage('Select dates first');
+        }
+        modal.classList.add('active');
+      });
+
+      // cancel stays the same
+      cancel.addEventListener('click', () => modal.classList.remove('active'));
+
+      // form submit
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const data = {
+          name:  form.name.value.trim(),
+          email: form.email.value.trim(),
+          start: inEl.value,
+          end:   outEl.value
+        };
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-KEY':    API_KEY
+          },
+          body: JSON.stringify(data)
+        });
+        if (res.status === 409) showMessage('Dates already booked');
+        else if (!res.ok)   showMessage('Booking failed');
+        else {
+          showMessage('Booked!', 'success');
+          setTimeout(async () => {
+            modal.classList.remove('active');
+            await fetchData();
+            calendar.destroy();
+            await initCalendar();
+          }, 1000);
+        }
       });
     });
   </script>
