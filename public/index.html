@@ -205,13 +205,32 @@
 
       async function initCalendar() {
         calendarEl.innerHTML = '';
-        const events = bookings.map(b => ({
-          id:    b.id,
-          title: 'Reserved',
-          start: b.start,
-          end:   b.end,
-          allDay: true
-        }));
+        const events = bookings.map(b => {
+          // b.start and b.end are both "YYYY-MM-DD" strings
+          const startDate = new Date(b.start);
+
+          // Determine how to shift the end date:
+          let endDate = new Date(b.end);
+          // If it’s a single-night stay (start === end), the endDate you stored
+          // is already the next calendar day (your outEl was set to the same day),
+          // so we only bump it one more day if b.end !== b.start
+          if (b.start !== b.end) {
+            // multi-night: include the last night by moving endDate forward 1 day
+            endDate.setDate(endDate.getDate() + 1);
+          }
+          // otherwise (single night) endDate is already the next calendar day,
+          // and FullCalendar will highlight exactly the one day.
+
+          return {
+            id:     b.id,
+            title:  'Reserved',
+            start:  b.start,
+            end:    endDate.toISOString().slice(0,10),
+            allDay: true
+          };
+        });
+
+
 
         calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
