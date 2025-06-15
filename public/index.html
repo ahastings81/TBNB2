@@ -34,7 +34,7 @@
       margin-bottom: 1rem;
     }
 
-    /* Site header & carousel (unchanged) */
+    /* Site header & carousel */
     .site-header { background-color: #005f73; color: white; padding: 1rem; text-align: center; }
     .carousel-wrapper { position: relative; overflow: hidden; }
     .carousel-slides { display: flex; transition: transform 0.3s ease; }
@@ -128,14 +128,7 @@
         <p id="bookingPrice" class="booking-price">Total: —</p>
         <label>
           Card Number
-          <input
-            type="text"
-            name="cardNumber"
-            inputmode="numeric"
-            pattern="\d*"
-            placeholder="1234 5678 9012 3456"
-            required
-          />
+          <input type="text" name="cardNumber" inputmode="numeric" pattern="\d*" placeholder="1234 5678 9012 3456" required/>
         </label>
         <label>
           Expiry
@@ -143,14 +136,7 @@
         </label>
         <label>
           CVC
-          <input
-            type="text"
-            name="cardCVC"
-            inputmode="numeric"
-            pattern="\d{3,4}"
-            placeholder="123"
-            required
-          />
+          <input type="text" name="cardCVC" inputmode="numeric" pattern="\d{3,4}" placeholder="123" required/>
         </label>
         <div class="modal-buttons">
           <button type="submit">Confirm &amp; Pay</button>
@@ -193,24 +179,25 @@
     <p class="footer-small">&copy; 2025 Beachfront Condo A403. All rights reserved.</p>
   </footer>
 
-  <!-- Scripts -->
+  <!-- Carousel Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
-    // Photo carousel
     const slides = document.querySelector('.carousel-slides');
     const prev   = document.querySelector('.carousel-prev');
     const next   = document.querySelector('.carousel-next');
     let idx = 0;
     next.addEventListener('click', () => {
       idx = (idx + 1) % slides.children.length;
-      slides.style.transform = \`translateX(-\${idx * 100}%)\`;
+      slides.style.transform = `translateX(-${idx * 100}%)`;
     });
     prev.addEventListener('click', () => {
       idx = (idx - 1 + slides.children.length) % slides.children.length;
-      slides.style.transform = \`translateX(-\${idx * 100}%)\`;
+      slides.style.transform = `translateX(-${idx * 100}%)`;
     });
   </script>
+
+  <!-- Booking & Calendar Script -->
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       const API_KEY    = 'supersecretkey';
@@ -230,14 +217,7 @@
 
       function showMessage(text, type = 'error') {
         msgEl.textContent = text;
-        msgEl.className   = \`message \${type}\`;
-      }
-
-      async function fetchData() {
-        [bookings, prices] = await Promise.all([
-          fetch('/api/bookings').then(r => r.ok ? r.json() : []),
-          fetch('/api/prices'  ).then(r => r.ok ? r.json() : {})
-        ]);
+        msgEl.className   = `message ${type}`;
       }
 
       function updateTotal() {
@@ -254,16 +234,24 @@
           total += (prices[ds] || 0);
           cursor.setDate(cursor.getDate() + 1);
         }
-        priceEl.textContent = new Intl.NumberFormat('en-US',{
+        priceEl.textContent = new Intl.NumberFormat('en-US', {
           style: 'currency', currency: 'USD'
         }).format(total);
+      }
+
+      async function fetchData() {
+        const [bData, pData] = await Promise.all([
+          fetch('/api/bookings').then(r => r.ok ? r.json() : []),
+          fetch('/api/prices').then(r => r.ok ? r.json() : {})
+        ]);
+        bookings = bData;
+        prices   = pData;
       }
 
       async function initCalendar() {
         calendarEl.innerHTML = '';
         const events = bookings.map(b => {
           const endDate = new Date(b.end);
-          // multi-night stays need an extra day to be inclusive
           if (b.start !== b.end) endDate.setDate(endDate.getDate() + 1);
           return {
             id:     b.id,
@@ -279,7 +267,7 @@
           selectable:  true,
           longPressDelay:      0,
           selectLongPressDelay: 0,
-          events,
+          events: events,
           dayCellDidMount: info => {
             const ds = info.date.toISOString().slice(0,10);
             if (prices[ds] != null) {
@@ -335,9 +323,7 @@
       };
 
       btn.addEventListener('click', () => {
-        if (!inEl.value || !outEl.value) {
-          return showMessage('Select dates first');
-        }
+        if (!inEl.value || !outEl.value) return showMessage('Select dates first');
         modal.classList.add('active');
       });
 
