@@ -12,20 +12,41 @@
     /* Hero Section */
     .hero { position: relative; text-align: center; overflow: visible; }
     .hero-img { width: 70%; height: auto; display: block; margin: 0 auto; }
-    .hero-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; background: rgba(0,0,0,0.35); padding: 1rem 2rem; border-radius: 8px; box-sizing: border-box; }
+    .hero-overlay {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff; background: rgba(0,0,0,0.35);
+      padding: 1rem 2rem; border-radius: 8px; box-sizing: border-box;
+    }
 
-    /* Calendar cell relative for badges */
+    /* Calendar cell badges */
     .calendar .fc-daygrid-day { position: relative; }
-    .day-price { position: absolute; bottom: 4px; right: 4px; font-size: 0.75em; background: rgba(255,255,255,0.8); padding: 2px 4px; border-radius: 3px; pointer-events: none; }
+    .day-price {
+      position: absolute; bottom: 4px; right: 4px;
+      font-size: 0.75em; background: rgba(255,255,255,0.8);
+      padding: 2px 4px; border-radius: 3px; pointer-events: none;
+    }
 
+    /* Booking price line */
+    .booking-price {
+      font-size: 1.25rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+
+    /* Site header & carousel (unchanged) */
     .site-header { background-color: #005f73; color: white; padding: 1rem; text-align: center; }
-    /* Carousel */
     .carousel-wrapper { position: relative; overflow: hidden; }
     .carousel-slides { display: flex; transition: transform 0.3s ease; }
     .carousel-slides picture { min-width: 100%; margin: 0 auto; }
-    .carousel-prev, .carousel-next { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: #fff; border: none; font-size: 2rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 4px; }
+    .carousel-prev, .carousel-next {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(0,0,0,0.5); color: #fff; border: none;
+      font-size: 2rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 4px;
+    }
     .carousel-prev { left: 1rem; } .carousel-next { right: 1rem; }
-       /* Enable swipe-drag selection on mobile */
+
+    /* Enable swipe-drag selection on mobile */
     #calendar { touch-action: none; }
   </style>
 </head>
@@ -39,7 +60,7 @@
 
   <!-- Hero -->
   <section class="hero">
-    <img src="./images/hero.WEBP" alt="Ocean view from condo" class="hero-img" loading="lazy" />
+    <img src="./images/hero.WEBP" alt="Ocean view from condo" class="hero-img" loading="lazy"/>
     <div class="hero-overlay">
       <h2>Wake Up to Ocean Breezes</h2>
       <p>Luxury 2 Bed • 2.5 Bath • Resort Amenities</p>
@@ -68,17 +89,18 @@
     <div class="carousel-wrapper">
       <button class="carousel-prev" aria-label="Previous image">&#10094;</button>
       <div class="carousel-slides">
-        <picture><source srcset="./images/IMG_5640.WEBP" type="image/webp"><img src="./images/IMG_5640.WEBP" alt="Living room view"></picture>
-        <picture><source srcset="./images/IMG_5643.WEBP" type="image/webp"><img src="./images/IMG_5643.WEBP" alt="Master bedroom"></picture>
-        <picture><source srcset="./images/IMG_5632.WEBP" type="image/webp"><img src="./images/IMG_5632.WEBP" alt="Balcony view"></picture>
-        <picture><source srcset="./images/IMG_5641.WEBP" type="image/webp"><img src="./images/IMG_5641.WEBP" alt="Kitchen"></picture>
-        <picture><source srcset="./images/IMG_5647.WEBP" type="image/webp"><img src="./images/IMG_5647.WEBP" alt="Bunk bedroom"></picture>
-        <picture><source srcset="./images/hero.WEBP" type="image/webp"><img src="./images/hero.WEBP" alt="Resort pool view"></picture>
+        <picture><source srcset="./images/IMG_5640.WEBP" type="image/webp"/><img src="./images/IMG_5640.WEBP" alt="Living room view"/></picture>
+        <picture><source srcset="./images/IMG_5643.WEBP" type="image/webp"/><img src="./images/IMG_5643.WEBP" alt="Master bedroom"/></picture>
+        <picture><source srcset="./images/IMG_5632.WEBP" type="image/webp"/><img src="./images/IMG_5632.WEBP" alt="Balcony view"/></picture>
+        <picture><source srcset="./images/IMG_5641.WEBP" type="image/webp"/><img src="./images/IMG_5641.WEBP" alt="Kitchen"/></picture>
+        <picture><source srcset="./images/IMG_5647.WEBP" type="image/webp"/><img src="./images/IMG_5647.WEBP" alt="Bunk bedroom"/></picture>
+        <picture><source srcset="./images/hero.WEBP" type="image/webp"/><img src="./images/hero.WEBP" alt="Resort pool view"/></picture>
       </div>
       <button class="carousel-next" aria-label="Next image">&#10095;</button>
     </div>
   </section>
 
+  <!-- Booking Calendar -->
   <section class="booking-calendar container">
     <h2>Book Your Stay</h2>
     <div class="inputs">
@@ -90,7 +112,7 @@
     <div id="calendar" class="calendar"></div>
   </section>
 
-  <!-- Booking Modal (with payment fields restored) -->
+  <!-- Booking Modal -->
   <div id="bookingModal" class="modal-backdrop">
     <div class="modal">
       <h2>Confirm Your Booking</h2>
@@ -103,6 +125,7 @@
           Email
           <input type="email" name="email" required/>
         </label>
+        <p id="bookingPrice" class="booking-price">Total: —</p>
         <label>
           Card Number
           <input
@@ -116,12 +139,7 @@
         </label>
         <label>
           Expiry
-          <input
-            type="month"
-            name="cardExpiry"
-            placeholder="MM/YYYY"
-            required
-          />
+          <input type="month" name="cardExpiry" required/>
         </label>
         <label>
           CVC
@@ -135,13 +153,12 @@
           />
         </label>
         <div class="modal-buttons">
-          <button type="submit">Confirm & Pay</button>
+          <button type="submit">Confirm &amp; Pay</button>
           <button type="button" id="cancelBtn">Cancel</button>
         </div>
       </form>
     </div>
   </div>
-
 
   <!-- Testimonials -->
   <section class="testimonials container">
@@ -156,9 +173,22 @@
   <!-- Footer -->
   <footer class="site-footer container">
     <div class="footer-grid">
-      <div><h3>About Us</h3><p>Beachfront Condo A403: your home away from home on the Gulf Coast.</p></div>
-      <div><h3>Contact</h3><p>Email: info@beachfronta403.com<br/>Phone: (555) 123-4567</p></div>
-      <div><h3>Follow Us</h3><ul><li><a href="#">Instagram</a></li><li><a href="#">Facebook</a></li><li><a href="#">Twitter</a></li></ul></div>
+      <div>
+        <h3>About Us</h3>
+        <p>Beachfront Condo A403: your home away from home on the Gulf Coast.</p>
+      </div>
+      <div>
+        <h3>Contact</h3>
+        <p>Email: info@beachfronta403.com<br/>Phone: (555) 123-4567</p>
+      </div>
+      <div>
+        <h3>Follow Us</h3>
+        <ul>
+          <li><a href="#">Instagram</a></li>
+          <li><a href="#">Facebook</a></li>
+          <li><a href="#">Twitter</a></li>
+        </ul>
+      </div>
     </div>
     <p class="footer-small">&copy; 2025 Beachfront Condo A403. All rights reserved.</p>
   </footer>
@@ -167,13 +197,19 @@
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
-    // Carousel Logic
+    // Photo carousel
     const slides = document.querySelector('.carousel-slides');
     const prev   = document.querySelector('.carousel-prev');
     const next   = document.querySelector('.carousel-next');
     let idx = 0;
-    next.onclick = () => { idx = (idx + 1) % slides.children.length; slides.style.transform = `translateX(-${idx * 100}%)`; };
-    prev.onclick = () => { idx = (idx - 1 + slides.children.length) % slides.children.length; slides.style.transform = `translateX(-${idx * 100}%)`; };
+    next.addEventListener('click', () => {
+      idx = (idx + 1) % slides.children.length;
+      slides.style.transform = \`translateX(-\${idx * 100}%)\`;
+    });
+    prev.addEventListener('click', () => {
+      idx = (idx - 1 + slides.children.length) % slides.children.length;
+      slides.style.transform = \`translateX(-\${idx * 100}%)\`;
+    });
   </script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
@@ -181,6 +217,7 @@
       const bc         = new BroadcastChannel('calendar-sync');
       const inEl       = document.getElementById('checkin');
       const outEl      = document.getElementById('checkout');
+      const priceEl    = document.getElementById('bookingPrice');
       const btn        = document.getElementById('bookBtn');
       const modal      = document.getElementById('bookingModal');
       const form       = document.getElementById('bookingForm');
@@ -193,7 +230,7 @@
 
       function showMessage(text, type = 'error') {
         msgEl.textContent = text;
-        msgEl.className   = `message ${type}`;
+        msgEl.className   = \`message \${type}\`;
       }
 
       async function fetchData() {
@@ -203,24 +240,31 @@
         ]);
       }
 
+      function updateTotal() {
+        if (!inEl.value || !outEl.value) {
+          priceEl.textContent = 'Total: —';
+          return;
+        }
+        const start  = new Date(inEl.value);
+        const end    = new Date(outEl.value);
+        let cursor   = new Date(start);
+        let total    = 0;
+        while (cursor <= end) {
+          const ds = cursor.toISOString().slice(0,10);
+          total += (prices[ds] || 0);
+          cursor.setDate(cursor.getDate() + 1);
+        }
+        priceEl.textContent = new Intl.NumberFormat('en-US',{
+          style: 'currency', currency: 'USD'
+        }).format(total);
+      }
+
       async function initCalendar() {
         calendarEl.innerHTML = '';
         const events = bookings.map(b => {
-          // b.start and b.end are both "YYYY-MM-DD" strings
-          const startDate = new Date(b.start);
-
-          // Determine how to shift the end date:
-          let endDate = new Date(b.end);
-          // If it’s a single-night stay (start === end), the endDate you stored
-          // is already the next calendar day (your outEl was set to the same day),
-          // so we only bump it one more day if b.end !== b.start
-          if (b.start !== b.end) {
-            // multi-night: include the last night by moving endDate forward 1 day
-            endDate.setDate(endDate.getDate() + 1);
-          }
-          // otherwise (single night) endDate is already the next calendar day,
-          // and FullCalendar will highlight exactly the one day.
-
+          const endDate = new Date(b.end);
+          // multi-night stays need an extra day to be inclusive
+          if (b.start !== b.end) endDate.setDate(endDate.getDate() + 1);
           return {
             id:     b.id,
             title:  'Reserved',
@@ -230,72 +274,58 @@
           };
         });
 
-
-
         calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
-          selectable:         true,
-          longPressDelay:     0,
+          selectable:  true,
+          longPressDelay:      0,
           selectLongPressDelay: 0,
           events,
-
-          // DRAG/SWIPE selection
-          select: info => {
-            inEl.value  = info.startStr;
-            let endDate = new Date(info.end);
-            endDate.setDate(endDate.getDate() - 1);
-            outEl.value = endDate.toISOString().slice(0,10);
-
-            // only clear pendingStart on real user drags (info.jsEvent is set)
-            if (info.jsEvent) {
-              pendingStart = null;
-            }
-          },
-
-          // SINGLE-TAP selection
-          dateClick: info => {
-            if (pendingStart === null) {
-              // first tap = single-day selection
-              pendingStart = info.date;
-              let endPlusOne = new Date(info.date);
-              endPlusOne.setDate(endPlusOne.getDate() + 1);
-              calendar.select(info.date, endPlusOne);
-              inEl.value  = info.dateStr;
-              outEl.value = info.dateStr;
-            } else {
-              // second tap = extend/shift end date
-              let start = pendingStart < info.date ? pendingStart : info.date;
-              let end   = pendingStart < info.date ? info.date      : pendingStart;
-              let endPlusOne = new Date(end);
-              endPlusOne.setDate(endPlusOne.getDate() + 1);
-              calendar.select(start, endPlusOne);
-              inEl.value  = start.toISOString().slice(0,10);
-              outEl.value = end.toISOString().slice(0,10);
-              pendingStart = null;
-            }
-          },
-
-          // show prices (unchanged)
           dayCellDidMount: info => {
             const ds = info.date.toISOString().slice(0,10);
             if (prices[ds] != null) {
               const badge = document.createElement('div');
               badge.className   = 'day-price';
-              badge.textContent = '$'+prices[ds];
+              badge.textContent = '$' + prices[ds];
               info.el.style.position = 'relative';
               info.el.appendChild(badge);
             }
+          },
+          select: info => {
+            inEl.value = info.startStr;
+            let ed = new Date(info.end);
+            ed.setDate(ed.getDate() - 1);
+            outEl.value = ed.toISOString().slice(0,10);
+            if (info.jsEvent) pendingStart = null;
+            updateTotal();
+          },
+          dateClick: info => {
+            if (pendingStart === null) {
+              pendingStart = info.date;
+              let ep = new Date(info.date);
+              ep.setDate(ep.getDate() + 1);
+              calendar.select(info.date, ep);
+              inEl.value  = info.dateStr;
+              outEl.value = info.dateStr;
+            } else {
+              let start = pendingStart < info.date ? pendingStart : info.date;
+              let end   = pendingStart < info.date ? info.date      : pendingStart;
+              let ep = new Date(end);
+              ep.setDate(ep.getDate() + 1);
+              calendar.select(start, ep);
+              inEl.value  = start.toISOString().slice(0,10);
+              outEl.value = end.toISOString().slice(0,10);
+              pendingStart = null;
+            }
+            updateTotal();
           }
         });
 
         calendar.render();
       }
 
-      // initial load
       await fetchData();
       await initCalendar();
 
-      // listen for admin price updates
       bc.onmessage = async e => {
         if (e.data.type === 'prices-updated') {
           await fetchData();
@@ -304,7 +334,6 @@
         }
       };
 
-      // only Book Now opens modal
       btn.addEventListener('click', () => {
         if (!inEl.value || !outEl.value) {
           return showMessage('Select dates first');
@@ -312,10 +341,8 @@
         modal.classList.add('active');
       });
 
-      // cancel button
       cancel.addEventListener('click', () => modal.classList.remove('active'));
 
-      // form submit (with payment data now included)
       form.addEventListener('submit', async e => {
         e.preventDefault();
         const formData = {
