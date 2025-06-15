@@ -79,7 +79,6 @@
     </div>
   </section>
 
-   <!-- Booking Calendar Section -->
   <section class="booking-calendar container">
     <h2>Book Your Stay</h2>
     <div class="inputs">
@@ -91,20 +90,58 @@
     <div id="calendar" class="calendar"></div>
   </section>
 
-  <!-- Booking Confirmation Modal -->
+  <!-- Booking Modal (with payment fields restored) -->
   <div id="bookingModal" class="modal-backdrop">
     <div class="modal">
       <h2>Confirm Your Booking</h2>
       <form id="bookingForm">
-        <label>Name <input type="text" name="name" required/></label>
-        <label>Email <input type="email" name="email" required/></label>
+        <label>
+          Name
+          <input type="text" name="name" required/>
+        </label>
+        <label>
+          Email
+          <input type="email" name="email" required/>
+        </label>
+        <label>
+          Card Number
+          <input
+            type="text"
+            name="cardNumber"
+            inputmode="numeric"
+            pattern="\d*"
+            placeholder="1234 5678 9012 3456"
+            required
+          />
+        </label>
+        <label>
+          Expiry
+          <input
+            type="month"
+            name="cardExpiry"
+            placeholder="MM/YYYY"
+            required
+          />
+        </label>
+        <label>
+          CVC
+          <input
+            type="text"
+            name="cardCVC"
+            inputmode="numeric"
+            pattern="\d{3,4}"
+            placeholder="123"
+            required
+          />
+        </label>
         <div class="modal-buttons">
-          <button type="submit">Confirm</button>
+          <button type="submit">Confirm & Pay</button>
           <button type="button" id="cancelBtn">Cancel</button>
         </div>
       </form>
     </div>
   </div>
+
 
   <!-- Testimonials -->
   <section class="testimonials container">
@@ -138,7 +175,7 @@
     next.onclick = () => { idx = (idx + 1) % slides.children.length; slides.style.transform = `translateX(-${idx * 100}%)`; };
     prev.onclick = () => { idx = (idx - 1 + slides.children.length) % slides.children.length; slides.style.transform = `translateX(-${idx * 100}%)`; };
   </script>
- <script>
+  <script>
     document.addEventListener('DOMContentLoaded', async () => {
       const API_KEY    = 'supersecretkey';
       const bc         = new BroadcastChannel('calendar-sync');
@@ -170,7 +207,7 @@
         calendarEl.innerHTML = '';
         const events = bookings.map(b => ({
           id:    b.id,
-          title: 'Reserved',            // show “Reserved” on booked dates
+          title: 'Reserved',
           start: b.start,
           end:   b.end,
           allDay: true
@@ -178,24 +215,28 @@
 
         calendar = new FullCalendar.Calendar(calendarEl, {
           initialView: 'dayGridMonth',
-          selectable:  true,
-          longPressDelay:      0,
+          selectable:         true,
+          longPressDelay:     0,
           selectLongPressDelay: 0,
           events,
 
-          // drag/swipe selection
+          // DRAG/SWIPE selection
           select: info => {
-            inEl.value = info.startStr;
+            inEl.value  = info.startStr;
             let endDate = new Date(info.end);
             endDate.setDate(endDate.getDate() - 1);
             outEl.value = endDate.toISOString().slice(0,10);
-            pendingStart = null;
+
+            // only clear pendingStart on real user drags (info.jsEvent is set)
+            if (info.jsEvent) {
+              pendingStart = null;
+            }
           },
 
-          // single-tap selection
+          // SINGLE-TAP selection
           dateClick: info => {
             if (pendingStart === null) {
-              // first tap = one-day range
+              // first tap = single-day selection
               pendingStart = info.date;
               let endPlusOne = new Date(info.date);
               endPlusOne.setDate(endPlusOne.getDate() + 1);
@@ -203,7 +244,7 @@
               inEl.value  = info.dateStr;
               outEl.value = info.dateStr;
             } else {
-              // second tap = adjust end date of that range
+              // second tap = extend/shift end date
               let start = pendingStart < info.date ? pendingStart : info.date;
               let end   = pendingStart < info.date ? info.date      : pendingStart;
               let endPlusOne = new Date(end);
@@ -215,7 +256,7 @@
             }
           },
 
-          // price badges
+          // show prices (unchanged)
           dayCellDidMount: info => {
             const ds = info.date.toISOString().slice(0,10);
             if (prices[ds] != null) {
@@ -235,7 +276,7 @@
       await fetchData();
       await initCalendar();
 
-      // listen for price updates (from admin)
+      // listen for admin price updates
       bc.onmessage = async e => {
         if (e.data.type === 'prices-updated') {
           await fetchData();
@@ -244,7 +285,7 @@
         }
       };
 
-      // Book Now button opens modal only
+      // only Book Now opens modal
       btn.addEventListener('click', () => {
         if (!inEl.value || !outEl.value) {
           return showMessage('Select dates first');
@@ -252,17 +293,20 @@
         modal.classList.add('active');
       });
 
-      // cancel stays the same
+      // cancel button
       cancel.addEventListener('click', () => modal.classList.remove('active'));
 
-      // form submit
+      // form submit (with payment data now included)
       form.addEventListener('submit', async e => {
         e.preventDefault();
-        const data = {
-          name:  form.name.value.trim(),
-          email: form.email.value.trim(),
-          start: inEl.value,
-          end:   outEl.value
+        const formData = {
+          name:       form.name.value.trim(),
+          email:      form.email.value.trim(),
+          start:      inEl.value,
+          end:        outEl.value,
+          cardNumber: form.cardNumber.value.trim(),
+          cardExpiry: form.cardExpiry.value,
+          cardCVC:    form.cardCVC.value.trim()
         };
         const res = await fetch('/api/bookings', {
           method: 'POST',
@@ -270,7 +314,7 @@
             'Content-Type': 'application/json',
             'X-API-KEY':    API_KEY
           },
-          body: JSON.stringify(data)
+          body: JSON.stringify(formData)
         });
         if (res.status === 409) showMessage('Dates already booked');
         else if (!res.ok)   showMessage('Booking failed');
