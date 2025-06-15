@@ -178,14 +178,14 @@ app.post('/api/bookings', requireKey, async (req, res) => {
   transporter.sendMail({
     from: SMTP_USER,
     to: email,
-    subject: 'Booking Confirmed',
-    text: `Hi ${name}, your booking from ${start} to ${end} is confirmed.`
+    subject: 'Your booking is confirmed!',
+    text: `Thank You ${name} for choosing TaraBnB! Your booking from ${start} to ${end} is confirmed.` // message to user (confirmation)
   }).catch(console.error);
   transporter.sendMail({
     from: SMTP_USER,
     to: ADMIN_EMAIL,
     subject: 'New Booking',
-    text: `New booking by ${name} (${email}) from ${start} to ${end}.`
+    text: `New booking by ${name} (${email}) from ${start} to ${end}.`  // message to owner (notification)
   }).catch(console.error);
 
   res.status(201).json(booking);
