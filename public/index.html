@@ -12,55 +12,39 @@
     /* Hero Section */
     .hero { position: relative; text-align: center; overflow: visible; }
     .hero-img { width: 70%; height: auto; display: block; margin: 0 auto; }
-    .hero-overlay {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      color: #fff; background: rgba(0,0,0,0.35);
-      padding: 1rem 2rem; border-radius: 8px; box-sizing: border-box;
-    }
+    .hero-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.35); color: #fff; padding: 1rem 2rem; border-radius: 8px; box-sizing: border-box; }
 
-    /* Calendar cell badges */
+    /* Calendar badges */
     .calendar .fc-daygrid-day { position: relative; }
-    .day-price {
-      position: absolute; bottom: 4px; right: 4px;
-      font-size: 0.75em; background: rgba(255,255,255,0.8);
-      padding: 2px 4px; border-radius: 3px; pointer-events: none;
-    }
+    .day-price { position: absolute; bottom: 4px; right: 4px; font-size: 0.75em; background: rgba(255,255,255,0.8); padding: 2px 4px; border-radius: 3px; }
 
-    /* Booking price line */
-    .booking-price {
-      font-size: 1.25rem;
-      font-weight: bold;
-      margin-bottom: 1rem;
-    }
+    /* Booking breakdown */
+    .price-breakdown { list-style: none; padding: 0; margin: 0 0 1rem; max-height: 150px; overflow-y: auto; }
+    .price-breakdown li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee; }
+    .booking-subtotal, .booking-tax, .booking-total { font-size: 1.25rem; font-weight: bold; margin: 0.5rem 0; }
 
-    /* Site header & carousel */
+    /* Layout & carousel */
     .site-header { background-color: #005f73; color: white; padding: 1rem; text-align: center; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
     .carousel-wrapper { position: relative; overflow: hidden; }
     .carousel-slides { display: flex; transition: transform 0.3s ease; }
-    .carousel-slides picture { min-width: 100%; margin: 0 auto; }
-    .carousel-prev, .carousel-next {
-      position: absolute; top: 50%; transform: translateY(-50%);
-      background: rgba(0,0,0,0.5); color: #fff; border: none;
-      font-size: 2rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 4px;
-    }
+    .carousel-slides picture { min-width: 100%; }
+    .carousel-prev, .carousel-next { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: #fff; border: none; padding: 0.5rem 1rem; font-size: 2rem; cursor: pointer; border-radius: 4px; }
     .carousel-prev { left: 1rem; } .carousel-next { right: 1rem; }
-
-    /* Enable swipe-drag selection on mobile */
     #calendar { touch-action: none; }
   </style>
 </head>
 <body>
   <header class="site-header">
     <div class="container">
-      <h1 class="site-title">Beachfront Condo A403</h1>
+      <h1>Beachfront Condo A403</h1>
       <p>Beachfront Rental in Fort Walton Beach, FL</p>
     </div>
   </header>
 
   <!-- Hero -->
   <section class="hero">
-    <img src="./images/hero.WEBP" alt="Ocean view from condo" class="hero-img" loading="lazy"/>
+    <img src="./images/hero.WEBP" alt="Beachfront view" class="hero-img" loading="lazy" />
     <div class="hero-overlay">
       <h2>Wake Up to Ocean Breezes</h2>
       <p>Luxury 2 Bed • 2.5 Bath • Resort Amenities</p>
@@ -89,12 +73,12 @@
     <div class="carousel-wrapper">
       <button class="carousel-prev" aria-label="Previous image">&#10094;</button>
       <div class="carousel-slides">
-        <picture><source srcset="./images/IMG_5640.WEBP" type="image/webp"/><img src="./images/IMG_5640.WEBP" alt="Living room view"/></picture>
-        <picture><source srcset="./images/IMG_5643.WEBP" type="image/webp"/><img src="./images/IMG_5643.WEBP" alt="Master bedroom"/></picture>
-        <picture><source srcset="./images/IMG_5632.WEBP" type="image/webp"/><img src="./images/IMG_5632.WEBP" alt="Balcony view"/></picture>
-        <picture><source srcset="./images/IMG_5641.WEBP" type="image/webp"/><img src="./images/IMG_5641.WEBP" alt="Kitchen"/></picture>
-        <picture><source srcset="./images/IMG_5647.WEBP" type="image/webp"/><img src="./images/IMG_5647.WEBP" alt="Bunk bedroom"/></picture>
-        <picture><source srcset="./images/hero.WEBP" type="image/webp"/><img src="./images/hero.WEBP" alt="Resort pool view"/></picture>
+        <picture><source srcset="./images/IMG_5640.WEBP" type="image/webp"/><img src="./images/IMG_5640.WEBP" alt="Living room view" /></picture>
+        <picture><source srcset="./images/IMG_5643.WEBP" type="image/webp"/><img src="./images/IMG_5643.WEBP" alt="Master bedroom" /></picture>
+        <picture><source srcset="./images/IMG_5632.WEBP" type="image/webp"/><img src="./images/IMG_5632.WEBP" alt="Balcony view" /></picture>
+        <picture><source srcset="./images/IMG_5641.WEBP" type="image/webp"/><img src="./images/IMG_5641.WEBP" alt="Kitchen" /></picture>
+        <picture><source srcset="./images/IMG_5647.WEBP" type="image/webp"/><img src="./images/IMG_5647.WEBP" alt="Bunk bedroom" /></picture>
+        <picture><source srcset="./images/hero.WEBP" type="image/webp"/><img src="./images/hero.WEBP" alt="Resort pool view" /></picture>
       </div>
       <button class="carousel-next" aria-label="Next image">&#10095;</button>
     </div>
@@ -104,8 +88,8 @@
   <section class="booking-calendar container">
     <h2>Book Your Stay</h2>
     <div class="inputs">
-      <input readonly id="checkin"  placeholder="Check-in"  class="input-date"/>
-      <input readonly id="checkout" placeholder="Check-out" class="input-date"/>
+      <input readonly id="checkin" placeholder="Check-in" class="input-date" />
+      <input readonly id="checkout" placeholder="Check-out" class="input-date" />
       <button id="bookBtn" class="btn">Book Now</button>
     </div>
     <div id="message" class="message"></div>
@@ -117,29 +101,17 @@
     <div class="modal">
       <h2>Confirm Your Booking</h2>
       <form id="bookingForm">
-        <label>
-          Name
-          <input type="text" name="name" required/>
-        </label>
-        <label>
-          Email
-          <input type="email" name="email" required/>
-        </label>
-        <p id="bookingPrice" class="booking-price">Total: —</p>
-        <label>
-          Card Number
-          <input type="text" name="cardNumber" inputmode="numeric" pattern="\d*" placeholder="1234 5678 9012 3456" required/>
-        </label>
-        <label>
-          Expiry
-          <input type="month" name="cardExpiry" required/>
-        </label>
-        <label>
-          CVC
-          <input type="text" name="cardCVC" inputmode="numeric" pattern="\d{3,4}" placeholder="123" required/>
-        </label>
+        <label>Name <input type="text" name="name" required /></label>
+        <label>Email <input type="email" name="email" required /></label>
+        <ul id="priceBreakdown" class="price-breakdown"></ul>
+        <p id="subtotal" class="booking-subtotal">Subtotal: —</p>
+        <p id="tax" class="booking-tax">Tax (6%): —</p> <!-- set TAX_RATE here -->
+        <p id="total" class="booking-total">Total: —</p>
+        <label>Card Number <input type="text" name="cardNumber" required /></label>
+        <label>Expiry <input type="month" name="cardExpiry" required /></label>
+        <label>CVC <input type="text" name="cardCVC" required /></label>
         <div class="modal-buttons">
-          <button type="submit">Confirm &amp; Pay</button>
+          <button type="submit">Confirm & Pay</button>
           <button type="button" id="cancelBtn">Cancel</button>
         </div>
       </form>
@@ -165,7 +137,7 @@
       </div>
       <div>
         <h3>Contact</h3>
-        <p>Email: info@beachfronta403.com<br/>Phone: (555) 123-4567</p>
+        <p>Email: info@beachfronta403.com<br>Phone: (555) 123-4567</p>
       </div>
       <div>
         <h3>Follow Us</h3>
@@ -179,187 +151,102 @@
     <p class="footer-small">&copy; 2025 Beachfront Condo A403. All rights reserved.</p>
   </footer>
 
-  <!-- Carousel Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <!-- Carousel Script -->
   <script>
-    const slides = document.querySelector('.carousel-slides');
-    const prev   = document.querySelector('.carousel-prev');
-    const next   = document.querySelector('.carousel-next');
-    let idx = 0;
-    next.addEventListener('click', () => {
-      idx = (idx + 1) % slides.children.length;
-      slides.style.transform = `translateX(-${idx * 100}%)`;
-    });
-    prev.addEventListener('click', () => {
-      idx = (idx - 1 + slides.children.length) % slides.children.length;
-      slides.style.transform = `translateX(-${idx * 100}%)`;
+    document.addEventListener('DOMContentLoaded', () => {
+      const slides = document.querySelector('.carousel-slides');
+      const prev = document.querySelector('.carousel-prev');
+      const next = document.querySelector('.carousel-next');
+      let idx = 0;
+      next.addEventListener('click', () => { idx = (idx + 1) % slides.children.length; slides.style.transform = `translateX(-${idx*100}%)`; });
+      prev.addEventListener('click', () => { idx = (idx - 1 + slides.children.length) % slides.children.length; slides.style.transform = `translateX(-${idx*100}%)`; });
     });
   </script>
 
   <!-- Booking & Calendar Script -->
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      const API_KEY    = 'supersecretkey';
-      const bc         = new BroadcastChannel('calendar-sync');
-      const inEl       = document.getElementById('checkin');
-      const outEl      = document.getElementById('checkout');
-      const priceEl    = document.getElementById('bookingPrice');
-      const btn        = document.getElementById('bookBtn');
-      const modal      = document.getElementById('bookingModal');
-      const form       = document.getElementById('bookingForm');
-      const cancel     = document.getElementById('cancelBtn');
-      const msgEl      = document.getElementById('message');
-      const calendarEl = document.getElementById('calendar');
+      const TAX_RATE = 0.06; // set TAX_RATE here
+      const inEl = document.getElementById('checkin');
+      const outEl = document.getElementById('checkout');
+      const breakdownEl = document.getElementById('priceBreakdown');
+      const subtotalEl = document.getElementById('subtotal');
+      const taxEl = document.getElementById('tax');
+      const totalEl = document.getElementById('total');
+      const btn = document.getElementById('bookBtn');
+      const modal = document.getElementById('bookingModal');
+      const cancel = document.getElementById('cancelBtn');
+      const msgEl = document.getElementById('message');
+      let calendar, bookings = [], prices = {}, pendingStart = null;
 
-      let calendar, bookings = [], prices = {};
-      let pendingStart = null;
+      function showMessage(text) { msgEl.textContent = text; }
 
-      function showMessage(text, type = 'error') {
-        msgEl.textContent = text;
-        msgEl.className   = `message ${type}`;
-      }
-
-      function updateTotal() {
-        if (!inEl.value || !outEl.value) {
-          priceEl.textContent = 'Total: —';
-          return;
-        }
-        const start  = new Date(inEl.value);
-        const end    = new Date(outEl.value);
-        let cursor   = new Date(start);
-        let total    = 0;
+      function updateBreakdown() {
+        breakdownEl.innerHTML = '';
+        if (!inEl.value || !outEl.value) return;
+        let cursor = new Date(inEl.value);
+        const end = new Date(outEl.value);
+        let sub = 0;
         while (cursor <= end) {
           const ds = cursor.toISOString().slice(0,10);
-          total += (prices[ds] || 0);
-          cursor.setDate(cursor.getDate() + 1);
+          const p = prices[ds] || 0;
+          sub += p;
+          const li = document.createElement('li');
+          li.innerHTML = `<span>${cursor.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span><span>$${p.toFixed(2)}</span>`;
+          breakdownEl.appendChild(li);
+          cursor.setDate(cursor.getDate()+1);
         }
-        priceEl.textContent = new Intl.NumberFormat('en-US', {
-          style: 'currency', currency: 'USD'
-        }).format(total);
+        const taxAmt = sub * TAX_RATE;
+        const tot = sub + taxAmt;
+        subtotalEl.textContent = `Subtotal: $${sub.toFixed(2)}`;
+        taxEl.textContent = `Tax (${(TAX_RATE*100).toFixed(0)}%): $${taxAmt.toFixed(2)}`;
+        totalEl.textContent = `Total: $${tot.toFixed(2)}`;
       }
 
       async function fetchData() {
-        const [bData, pData] = await Promise.all([
-          fetch('/api/bookings').then(r => r.ok ? r.json() : []),
-          fetch('/api/prices').then(r => r.ok ? r.json() : {})
+        [bookings, prices] = await Promise.all([
+          fetch('/api/bookings').then(r => r.ok? r.json(): []),
+          fetch('/api/prices').then(r => r.ok? r.json(): {})
         ]);
-        bookings = bData;
-        prices   = pData;
       }
 
       async function initCalendar() {
+        const calendarEl = document.getElementById('calendar');
         calendarEl.innerHTML = '';
         const events = bookings.map(b => {
           const endDate = new Date(b.end);
-          if (b.start !== b.end) endDate.setDate(endDate.getDate() + 1);
-          return {
-            id:     b.id,
-            title:  'Reserved',
-            start:  b.start,
-            end:    endDate.toISOString().slice(0,10),
-            allDay: true
-          };
+          if (b.start !== b.end) endDate.setDate(endDate.getDate()+1);
+          return { id: b.id, title: 'Reserved', start: b.start, end: endDate.toISOString().slice(0,10), allDay: true };
         });
-
         calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'dayGridMonth',
-          selectable:  true,
-          longPressDelay:      0,
-          selectLongPressDelay: 0,
-          events: events,
-          dayCellDidMount: info => {
-            const ds = info.date.toISOString().slice(0,10);
-            if (prices[ds] != null) {
-              const badge = document.createElement('div');
-              badge.className   = 'day-price';
-              badge.textContent = '$' + prices[ds];
-              info.el.style.position = 'relative';
-              info.el.appendChild(badge);
-            }
+          initialView:'dayGridMonth', selectable:true, longPressDelay:0, selectLongPressDelay:0,
+          events, dayCellDidMount: info => {
+            const ds=info.date.toISOString().slice(0,10);
+            if(prices[ds]!=null){ const badge=document.createElement('div'); badge.className='day-price'; badge.textContent='$'+prices[ds]; info.el.style.position='relative'; info.el.appendChild(badge);}            
           },
           select: info => {
-            inEl.value = info.startStr;
-            let ed = new Date(info.end);
-            ed.setDate(ed.getDate() - 1);
-            outEl.value = ed.toISOString().slice(0,10);
-            if (info.jsEvent) pendingStart = null;
-            updateTotal();
+            inEl.value=info.startStr;
+            let ed=new Date(info.end); ed.setDate(ed.getDate()-1);
+            outEl.value=ed.toISOString().slice(0,10);
+            if(info.jsEvent) pendingStart=null;
+            updateBreakdown();
           },
           dateClick: info => {
-            if (pendingStart === null) {
-              pendingStart = info.date;
-              let ep = new Date(info.date);
-              ep.setDate(ep.getDate() + 1);
-              calendar.select(info.date, ep);
-              inEl.value  = info.dateStr;
-              outEl.value = info.dateStr;
-            } else {
-              let start = pendingStart < info.date ? pendingStart : info.date;
-              let end   = pendingStart < info.date ? info.date      : pendingStart;
-              let ep = new Date(end);
-              ep.setDate(ep.getDate() + 1);
-              calendar.select(start, ep);
-              inEl.value  = start.toISOString().slice(0,10);
-              outEl.value = end.toISOString().slice(0,10);
-              pendingStart = null;
-            }
-            updateTotal();
+            if(!pendingStart){ pendingStart=info.date; let ep=new Date(info.date); ep.setDate(ep.getDate()+1); calendar.select(info.date,ep); inEl.value=info.dateStr; outEl.value=info.dateStr; }
+            else{ let start=pendingStart<info.date?pendingStart:info.date; let end=pendingStart<info.date?info.date:pendingStart; let ep=new Date(end); ep.setDate(ep.getDate()+1); calendar.select(start,ep); inEl.value=start.toISOString().slice(0,10); outEl.value=end.toISOString().slice(0,10); pendingStart=null;}            
+            updateBreakdown();
           }
         });
-
         calendar.render();
       }
 
-      await fetchData();
-      await initCalendar();
-
-      bc.onmessage = async e => {
-        if (e.data.type === 'prices-updated') {
-          await fetchData();
-          calendar.destroy();
-          await initCalendar();
-        }
-      };
-
-      btn.addEventListener('click', () => {
-        if (!inEl.value || !outEl.value) return showMessage('Select dates first');
-        modal.classList.add('active');
-      });
-
-      cancel.addEventListener('click', () => modal.classList.remove('active'));
-
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-        const formData = {
-          name:       form.name.value.trim(),
-          email:      form.email.value.trim(),
-          start:      inEl.value,
-          end:        outEl.value,
-          cardNumber: form.cardNumber.value.trim(),
-          cardExpiry: form.cardExpiry.value,
-          cardCVC:    form.cardCVC.value.trim()
-        };
-        const res = await fetch('/api/bookings', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-KEY':    API_KEY
-          },
-          body: JSON.stringify(formData)
-        });
-        if (res.status === 409) showMessage('Dates already booked');
-        else if (!res.ok)   showMessage('Booking failed');
-        else {
-          showMessage('Booked!', 'success');
-          setTimeout(async () => {
-            modal.classList.remove('active');
-            await fetchData();
-            calendar.destroy();
-            await initCalendar();
-          }, 1000);
-        }
-      });
+      await fetchData(); await initCalendar();
+      btn.addEventListener('click', ()=>{ if(!inEl.value||!outEl.value) return showMessage('Select dates first'); modal.classList.add('active'); });
+      cancel.addEventListener('click', ()=>modal.classList.remove('active'));
+      document.getElementById('bookingForm').addEventListener('submit', async e=>{ e.preventDefault(); const fd={ name:e.target.name.value.trim(),email:e.target.email.value.trim(),start:inEl.value,end:outEl.value,cardNumber:e.target.cardNumber.value.trim(),cardExpiry:e.target.cardExpiry.value,cardCVC:e.target.cardCVC.value.trim() }; const res=await fetch('/api/bookings',{method:'POST',headers:{'Content-Type':'application/json','X-API-KEY':'supersecretkey'},body:JSON.stringify(fd)}); if(res.status===409) showMessage('Dates already booked'); else if(!res.ok) showMessage('Booking failed'); else{ showMessage('Booked!'); setTimeout(async()=>{ modal.classList.remove('active'); await fetchData(); calendar.destroy(); await initCalendar(); },1000); } });
     });
   </script>
 </body>
